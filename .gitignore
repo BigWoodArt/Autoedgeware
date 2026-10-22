@@ -1,0 +1,10 @@
+# your data - never uploaded, never overwritten by updates
+app/ae_settings/settings.json
+app/ae_settings/presets.json
+app/edgeware_core/data/blacklist/
+app/.setup_ok
+app/logs/
+app/update.log
+media/
+__pycache__/
+*.pyc

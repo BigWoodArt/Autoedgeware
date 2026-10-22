@@ -1,0 +1,10 @@
+# Autoedgeware itself needs nothing beyond the standard library.
+# Running the real popup engine (run_engine.py) needs everything real
+# Edgeware needs - install those with:
+#
+#   pip install -r edgeware_core/requirements.txt
+#
+# On Windows, video/audio playback also needs libmpv's DLL reachable -
+# see core/edgeware_bridge.py's and run_engine.py's own comments on
+# exactly where that's looked for (edgeware_core/data/).
+-r edgeware_core/requirements.txt
