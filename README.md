@@ -33,8 +33,6 @@ Contains unmodified Edgeware++ code (GPL-3.0, see `app/edgeware_core/COPYING`).
 
 ## Changelog
 
-Short version. Every release is listed in [CHANGELOG.md](CHANGELOG.md).
-
 - **0.23** — Update check: a button appears when GitHub has a newer version; one click downloads it, installs it and restarts.
 - **0.22** — Starts with a safe "Nature" preset; first-run window; dialogs centred. Freesound fixed (needs a key).
 - **0.21** — Settings reorganised (Main, Popups, Modes, Downloads, Advanced, Log). "Wait before popups start" works.
