@@ -71,6 +71,7 @@ except (AttributeError, OSError):
 
 import utils  # Edgeware's own logging init
 import features.misc as _misc_module
+from config import load_config as load_engine_config
 from config.settings import Settings
 from features.audio import play_audio
 from features.corruption import handle_corruption
@@ -337,6 +338,36 @@ def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
         run_minutes = random.uniform(ae_settings.get("hibernate_run_min_minutes", 20),
                                       ae_settings.get("hibernate_run_max_minutes", 40))
         root.after(int(run_minutes * 60000), enter_hibernate)
+
+    def reload_settings():
+        """Save while running: take the new values at once (popup timing, auto-close, chances, volumes, fullscreen
+        video). Popups already on screen keep their old values. Hibernate and corruption timers keep running."""
+        nonlocal base_delay, base_corruption_interval
+        _write_config_overrides()
+        settings.config = load_engine_config()
+        settings.load_settings()
+        settings.corruption_mode = False
+        fresh = load_settings(str(SETTINGS_PATH))
+        ae_settings.clear()
+        ae_settings.update(fresh)
+        raw_cfg.clear()
+        raw_cfg.update(effective_cfg(fresh, INTENSITY_PRESETS))
+        base_delay = settings.delay
+        base_corruption_interval = settings.corruption_time
+        progression["corruption_interval"] = base_corruption_interval
+        if progression["hibernating"]:        # stay quiet until the sleep ends, then use the new chances
+            progression["chances_backup"] = (settings.image_chance, settings.video_chance, settings.audio_chance)
+            settings.image_chance = settings.video_chance = settings.audio_chance = 0
+        ae_video_popup.configure(fresh.get("fullscreen_video_chance", 15), fresh.get("fullscreen_video_max_seconds", 600),
+                                 BASE_DIR, fresh.get("fullscreen_video_volume_pct", 70),
+                                 fresh.get("fullscreen_video_min_height", 1080),
+                                 click_close=fresh.get("fullscreen_video_click_close", True))
+        _hypno_mod.configure(fresh.get("hypno_beat_volume", 20))
+        file_log.write(BASE_DIR, f"settings reloaded: popup every {settings.delay} ms, "
+                                 f"auto-close {'on, ' + str(settings.timeout) + ' ms' if settings.timeout_enabled else 'off'}",
+                       "info")
+
+    state.ae_reload = reload_settings
 
     if raw_cfg.get("corruptionMode"):
         root.after(progression["corruption_interval"], escalate_corruption)

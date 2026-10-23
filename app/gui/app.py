@@ -852,6 +852,12 @@ class AutoedgewareGUI(tk.Tk):
         save_presets(PRESETS_PATH, self.presets)
         save_settings(SETTINGS_PATH, self._collect_settings())
         self._log("Saved presets and settings.")
+        reload_live = getattr(self._live_state, "ae_reload", None)
+        if self._engine_started and reload_live:
+            try:
+                reload_live()          # running popups engine: use the new values now, no restart needed
+            except Exception as ex:
+                self._log(f"Saved, but the running popups could not use the new values ({ex}). Restart to apply.", "warning")
         self._notify("Saved.", 4)
 
     def save_and_exit(self):
