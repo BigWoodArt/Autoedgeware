@@ -2,7 +2,7 @@
 import unittest
 from pathlib import Path
 
-from core.api_keys import API_KEYS, build_source_kwargs
+from core.api_keys import ALL_FIELDS, build_source_kwargs
 from ae_settings.settings import DEFAULTS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,9 +24,13 @@ class Keys(unittest.TestCase):
 
     def test_every_entry_has_a_default_setting_and_a_real_source(self):
         from core.source_registry import SOURCE_REGISTRY
-        for source_id, setting_key, label, hint in API_KEYS:
+        for source_id, setting_key, label, hint in ALL_FIELDS:
             self.assertIn(setting_key, DEFAULTS)
             self.assertIn(source_id, SOURCE_REGISTRY)
+
+    def test_rule34_key_and_id_travel_together(self):
+        self.assertEqual(build_source_kwargs({"rule34_api_key": "k", "rule34_user_id": "42"}),
+                         {"rule34": {"api_key": "k", "user_id": "42"}})
 
     def test_all_three_launchers_use_the_shared_builder(self):
         for name in ("main.py", "run_engine.py", "gui/app.py"):

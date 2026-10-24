@@ -6,6 +6,9 @@ import os
 import sys
 import time
 
+from core import ssl_fix
+ssl_fix.install_from_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ae_settings", "settings.json"))
+
 from ae_settings.preset import Preset, load_presets, save_presets
 from ae_settings.settings import load_settings
 from core.api_keys import build_source_kwargs

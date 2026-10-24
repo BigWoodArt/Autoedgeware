@@ -52,6 +52,8 @@ from ae_settings.settings import load_settings
 from core.scheduler import ScrapeScheduler
 from core.source_registry import SOURCE_REGISTRY
 from core import engine_control, file_log, media_caps, min_size, quiet_children, video_tidy
+from core import ssl_fix
+ssl_fix.install_from_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ae_settings", "settings.json"))
 from core.api_keys import build_source_kwargs
 from core.panic_users import PANIC_USERS
 from core.wallpaper_changer import WallpaperChanger

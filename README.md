@@ -33,6 +33,8 @@ Contains unmodified Edgeware++ code (GPL-3.0, see `app/edgeware_core/COPYING`).
 
 ## Changelog
 
+- **0.23.4** — Advanced > Network: optional "Skip certificate checks" (off by default; only on a trusted network).
+- **0.23.3** — Fixes "certificate has expired" download errors on PCs with an old certificate store (also trusts certifi's list; checking stays on). Rule34 now has API key and user ID fields (Advanced > Site keys).
 - **0.23.2** — Save now applies to running popups at once (popup timing, auto-close, chances, volumes); no restart needed.
 - **0.23** — Update check: a button appears when GitHub has a newer version; one click downloads it, installs it and restarts.
 - **0.22** — Starts with a safe "Nature" preset; first-run window; dialogs centred. Freesound fixed (needs a key).

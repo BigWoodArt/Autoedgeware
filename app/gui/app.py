@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ae_settings.preset import Preset, load_presets, save_presets
 from ae_settings.preset_io import export_preset, import_presets
 from ae_settings.settings import load_settings, save_settings
-from core import custom_intensity, updater, engine_control, file_log, media_caps, min_size, startup_shortcut, video_tidy
-from core.api_keys import API_KEYS, build_source_kwargs
+from core import custom_intensity, ssl_fix, updater, engine_control, file_log, media_caps, min_size, startup_shortcut, video_tidy
+from core.api_keys import ALL_FIELDS, build_source_kwargs
 from core.engine_launch import start_engine
 from core.friendly import friendly
 from core.pool_stats import count_media, count_text, status_line
@@ -78,13 +78,14 @@ class AutoedgewareGUI(tk.Tk):
         self.hib_sleep_max_var = tk.StringVar(value=str(s.get("hibernate_sleep_max_minutes", 15)))
         self.popup_timeout_var = tk.BooleanVar(value=s.get("popup_timeout_enabled", False))
         self.popup_timeout_seconds_var = tk.StringVar(value=str(s.get("popup_timeout_seconds", 10)))
+        self.skip_cert_var = tk.BooleanVar(value=bool(s.get("skip_certificate_checks", False)))
         self.update_check_var = tk.BooleanVar(value=bool(s.get("check_for_updates", True)))
         self.delay_var = tk.StringVar(value=str(s.get("startup_delay_seconds", 0)))
         self.auto_stop_var = tk.BooleanVar(value=s.get("auto_stop_after_pass", True))
         self.gelbooru_key_var = tk.StringVar(value=s.get("gelbooru_api_key", ""))
         self.gelbooru_uid_var = tk.StringVar(value=s.get("gelbooru_user_id", ""))
         self.api_key_vars = {setting_key: tk.StringVar(value=s.get(setting_key, ""))
-                             for _src, setting_key, _label, _hint in API_KEYS}
+                             for _src, setting_key, _label, _hint in ALL_FIELDS}
         self.hypno_var = tk.BooleanVar(value=s.get("hypno_mode", False))
         self.hero_var = tk.BooleanVar(value=s.get("hero_mode", False))
         self.hero_text_var = tk.BooleanVar(value=s.get("hero_text", True))
@@ -438,8 +439,13 @@ class AutoedgewareGUI(tk.Tk):
         self.startup_status_label.pack(anchor="w", pady=(4, 0))
         self._update_startup_label()
 
+        net = self._card(body, "NETWORK")
+        ng = self._rows(net)
+        self._add_check(ng, "Skip certificate checks", self.skip_cert_var)
+        self._hint(net, "Only for 'certificate' download errors. Activate only on a trusted network.").pack(anchor="w")
+
         keys = self._card(body, "SITE KEYS (OPTIONAL)")
-        self._hint(keys, "Only needed for Gelbooru and Wallhaven.").pack(anchor="w")
+        self._hint(keys, "Only needed for Gelbooru, Rule34, Wallhaven and Freesound.").pack(anchor="w")
         box = tk.Frame(keys, bg=self.pal["panel"])
         self._keys_box, self._keys_open = box, False
         self._keys_btn = self._btn(keys, "Show keys", self._toggle_keys)
@@ -449,7 +455,7 @@ class AutoedgewareGUI(tk.Tk):
         self._entry(box, self.gelbooru_key_var).pack(fill="x", pady=(2, 6))
         self._label(box, "Gelbooru user ID").pack(anchor="w")
         self._entry(box, self.gelbooru_uid_var).pack(fill="x", pady=(2, 6))
-        for _src, setting_key, label, hint in API_KEYS:
+        for _src, setting_key, label, hint in ALL_FIELDS:
             self._label(box, label).pack(anchor="w")
             self._hint(box, hint).pack(anchor="w")
             self._entry(box, self.api_key_vars[setting_key]).pack(fill="x", pady=(2, 6))
@@ -785,6 +791,10 @@ class AutoedgewareGUI(tk.Tk):
         except ValueError:
             self.settings["startup_delay_seconds"] = 0
         self.settings["check_for_updates"] = bool(self.update_check_var.get())
+        skip = bool(self.skip_cert_var.get())
+        if skip != bool(self.settings.get("skip_certificate_checks", False)) or skip:
+            ssl_fix.install(skip_checks=skip)         # takes effect at once in this program
+        self.settings["skip_certificate_checks"] = skip
         self.settings["auto_stop_after_pass"] = bool(self.auto_stop_var.get())
         self.settings["popup_timeout_enabled"] = bool(self.popup_timeout_var.get())
         try:

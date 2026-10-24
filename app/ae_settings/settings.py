@@ -24,7 +24,10 @@ DEFAULTS = {
     "hypno_mode": False,          # faint spiral + binaural beats, strength follows the image popup speed
     "freesound_api_key": "",
     "first_run_done": False,
+    "skip_certificate_checks": False,   # opt-in: off by default
     "check_for_updates": True,
+    "rule34_api_key": "",
+    "rule34_user_id": "",
     "wallhaven_api_key": "",      # more API keys: add a line to core/api_keys.py and one here
     "wallpaper_changer_on": True,   # swap the desktop wallpaper for wide images from the preset while running
     "wallpaper_minutes": 2,       # at most one change per this many minutes

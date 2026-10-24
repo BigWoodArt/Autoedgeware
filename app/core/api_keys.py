@@ -8,7 +8,15 @@ API_KEYS = [
      "Free: wallhaven.cc > Account > Settings. Unlocks NSFW wallpapers."),
     ("freesound", "freesound_api_key", "Freesound API key",
      "Free: freesound.org > Apiv2 credentials. Needed for Freesound sounds."),
+    ("rule34", "rule34_api_key", "Rule34 API key",
+     "Rule34 asks for a key and a user ID (both). Free: rule34.xxx > Account > Options > API Access Credentials."),
 ]
+
+# Second half of a key + ID pair: passed to the source as user_id.
+API_IDS = [
+    ("rule34", "rule34_user_id", "Rule34 user ID", "The number shown next to your API key."),
+]
+ALL_FIELDS = API_KEYS + API_IDS      # what the Advanced tab shows and saves
 
 
 def build_source_kwargs(settings):
@@ -21,4 +29,8 @@ def build_source_kwargs(settings):
         value = str(settings.get(setting_key, "") or "").strip()
         if value:
             kwargs[source_id] = {"api_key": value}
+    for source_id, setting_key, _label, _hint in API_IDS:
+        value = str(settings.get(setting_key, "") or "").strip()
+        if value:
+            kwargs.setdefault(source_id, {})["user_id"] = value
     return kwargs
