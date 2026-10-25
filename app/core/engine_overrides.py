@@ -33,6 +33,8 @@ def apply_forced(current, ae_settings):
     # Mitosis mode switches the timed image/video popups OFF and relies on one popup at engine start.
     # With an empty folder (any new preset) that start-up popup finds nothing, and no popup ever
     # appears. The maximum preset used to turn it on, so it showed nothing at all.
+    disabled = ae_settings.get("disabled_monitors") or []
+    current["disabledMonitors"] = [str(n) for n in disabled] if isinstance(disabled, (list, tuple)) else []
     current["mitosisMode"] = 0
     current["mitosisStrength"] = 0
     if ae_settings.get("popup_timeout_enabled"):     # the Options checkbox decides, not the preset

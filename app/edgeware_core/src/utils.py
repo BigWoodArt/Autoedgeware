@@ -66,4 +66,4 @@ def primary_monitor() -> Monitor | None:
 
 def random_monitor(settings: Settings) -> Monitor:
     enabled_monitors = [m for m in get_monitors() if m.name not in settings.disabled_monitors]
-    return random.choice(enabled_monitors or primary_monitor())
+    return random.choice(enabled_monitors or [primary_monitor()])

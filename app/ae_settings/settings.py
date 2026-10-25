@@ -24,6 +24,7 @@ DEFAULTS = {
     "hypno_mode": False,          # faint spiral + binaural beats, strength follows the image popup speed
     "freesound_api_key": "",
     "first_run_done": False,
+    "disabled_monitors": [],            # monitor names the popups skip; empty = all monitors
     "skip_certificate_checks": False,   # opt-in: off by default
     "check_for_updates": True,
     "rule34_api_key": "",

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ae_settings.preset import Preset, load_presets, save_presets
 from ae_settings.preset_io import export_preset, import_presets
 from ae_settings.settings import load_settings, save_settings
-from core import custom_intensity, ssl_fix, updater, engine_control, file_log, media_caps, min_size, startup_shortcut, video_tidy
+from core import custom_intensity, monitors, ssl_fix, updater, engine_control, file_log, media_caps, min_size, startup_shortcut, video_tidy
 from core.api_keys import ALL_FIELDS, build_source_kwargs
 from core.engine_launch import start_engine
 from core.friendly import friendly
@@ -78,6 +78,9 @@ class AutoedgewareGUI(tk.Tk):
         self.hib_sleep_max_var = tk.StringVar(value=str(s.get("hibernate_sleep_max_minutes", 15)))
         self.popup_timeout_var = tk.BooleanVar(value=s.get("popup_timeout_enabled", False))
         self.popup_timeout_seconds_var = tk.StringVar(value=str(s.get("popup_timeout_seconds", 10)))
+        self.monitor_list = monitors.list_monitors()
+        _off = set(s.get("disabled_monitors") or [])
+        self.monitor_vars = {name: tk.BooleanVar(value=name not in _off) for name, _l, _p in self.monitor_list}
         self.skip_cert_var = tk.BooleanVar(value=bool(s.get("skip_certificate_checks", False)))
         self.update_check_var = tk.BooleanVar(value=bool(s.get("check_for_updates", True)))
         self.delay_var = tk.StringVar(value=str(s.get("startup_delay_seconds", 0)))
@@ -335,6 +338,14 @@ class AutoedgewareGUI(tk.Tk):
 
     def _build_popups_tab(self, body):
         pal = self.pal
+        mon = self._card(body, "MONITORS")
+        if len(self.monitor_list) > 1:
+            self._hint(mon, "Popups, fullscreen videos, the spiral and the Hero bar only use ticked monitors.").pack(anchor="w", pady=(0, 4))
+            mg = self._rows(mon)
+            for name, label, _primary in self.monitor_list:
+                self._add_check(mg, label, self.monitor_vars[name])
+        else:
+            self._hint(mon, "Only one monitor found, so popups use it.").pack(anchor="w")
         c = self._card(body, "CUSTOM INTENSITY")
         self._hint(c, "Used when you pick Custom on the Main tab.").pack(anchor="w", pady=(0, 4))
         grid = self._rows(c)
@@ -790,6 +801,10 @@ class AutoedgewareGUI(tk.Tk):
             self.settings["startup_delay_seconds"] = int(self.delay_var.get())
         except ValueError:
             self.settings["startup_delay_seconds"] = 0
+        if self.monitor_list:
+            all_names = [n for n, _l, _p in self.monitor_list]
+            self.settings["disabled_monitors"] = monitors.disabled_from(
+                [n for n, v in self.monitor_vars.items() if v.get()], all_names)
         self.settings["check_for_updates"] = bool(self.update_check_var.get())
         skip = bool(self.skip_cert_var.get())
         if skip != bool(self.settings.get("skip_certificate_checks", False)) or skip:
