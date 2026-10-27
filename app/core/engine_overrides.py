@@ -56,6 +56,22 @@ def click_close_blocked(popup):
     return bool(POPUP_BEHAVIOR["timer_only"] and not getattr(popup, "_ae_full", False))
 
 
+def clamp_popup_pos(x, y, width, height, monitor):
+    """Keep the popup on its monitor. A window at negative x/y makes Edgeware's next
+    `geometry().replace("x", "+").split("+")` raise, so that popup never appears."""
+    max_x = monitor.x + monitor.width - width
+    max_y = monitor.y + monitor.height - height
+    if max_x >= monitor.x:
+        x = min(max(x, monitor.x), max_x)
+    else:
+        x = monitor.x
+    if max_y >= monitor.y:
+        y = min(max(y, monitor.y), max_y)
+    else:
+        y = monitor.y
+    return int(x), int(y)
+
+
 def install_popup_behavior():
     """Wraps Edgeware Popup once: skip click-to-close when timer-only, right-drag when that option is on."""
     global _installed
@@ -66,11 +82,25 @@ def install_popup_behavior():
 
     orig_try_button = Popup.try_button
     orig_init_finish = Popup.init_finish
+    orig_compute_geometry = Popup.compute_geometry
 
     def try_button(self):
         if click_close_blocked(self):
             return
         orig_try_button(self)
+
+    def compute_geometry(self, source_width, source_height):
+        try:
+            orig_compute_geometry(self, source_width, source_height)
+        except (ValueError, IndexError):
+            if not getattr(self, "width", 0) or not getattr(self, "height", 0):
+                self.width = max(100, int(source_width or 400) // 2)
+                self.height = max(100, int(source_height or 300) // 2)
+            if not hasattr(self, "monitor"):
+                import utils
+                self.monitor = utils.random_monitor(self.settings)
+            self.x, self.y = self.monitor.x, self.monitor.y
+            self.geometry(f"{self.width}x{self.height}+{self.x}+{self.y}")
 
     def init_finish(self):
         orig_init_finish(self)
@@ -85,12 +115,19 @@ def install_popup_behavior():
             if not start:
                 return
             x, y = event.x_root - start[0], event.y_root - start[1]
+            monitor = getattr(self, "monitor", None)
+            if monitor is not None:
+                x, y = clamp_popup_pos(x, y, self.width, self.height, monitor)
             self.x, self.y = x, y
             self.geometry(f"{self.width}x{self.height}+{x}+{y}")
 
-        for widget in (self, *self.winfo_children()):
-            widget.bind("<ButtonPress-3>", press, add="+")
-            widget.bind("<B3-Motion>", motion, add="+")
+        try:
+            for widget in (self, *self.winfo_children()):
+                widget.bind("<ButtonPress-3>", press, add="+")
+                widget.bind("<B3-Motion>", motion, add="+")
+        except Exception:
+            pass
 
     Popup.try_button = try_button
     Popup.init_finish = init_finish
+    Popup.compute_geometry = compute_geometry
