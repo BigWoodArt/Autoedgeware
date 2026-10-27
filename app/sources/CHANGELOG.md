@@ -1,3 +1,6 @@
+## v0.1.17
+- Pornhub GIFs: raise oversized skip cap from 25 MB to 100 MB (still a scraper constant, not a GUI setting).
+
 ## v0.1.16
 - Fix: Pictoa downloads use t*.pictoa.com URLs from listings (s* 404 on search).
 - Fix: Pornhub GIFs skip CDN files over 25 MB (avoids HTTP 503 on huge GIFs); Referer set per GIF page.

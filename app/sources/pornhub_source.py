@@ -18,7 +18,7 @@ LARGE_PIC_RE = re.compile(
 ALBUM_ID_RE = re.compile(r"/album/(\d+)", re.I)
 PHOTO_ID_RE = re.compile(r"/photo/(\d+)", re.I)
 GIF_ID_RE = re.compile(r"/gif/(\d+)", re.I)
-MAX_GIF_BYTES = 25 * 1048576   # CDN returns HTTP 503 on full GET for very large GIFs (~50MB+)
+MAX_GIF_BYTES = 100 * 1048576   # CDN may 503 on full GET for extremely large GIFs; skip above this
 
 
 def _album_search_url(query, page):
@@ -193,6 +193,6 @@ class PornhubGifsSource(JsonBoardSource):
         url = m.group(1).replace("&amp;", "&")
         size = self._gif_byte_size(url)
         if size and size > MAX_GIF_BYTES:
-            log(f"   -> skipped gif {pid}: {size // 1048576} MB (over {MAX_GIF_BYTES // 1048576} MB cap)", "warning")
+            log(f"   -> skipped gif {pid}: {size // 1048576} MB (over {MAX_GIF_BYTES // 1048576} MB scraper cap)", "warning")
             return None
         return url
