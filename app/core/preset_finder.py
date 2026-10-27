@@ -23,7 +23,8 @@ FINDER_SITES = [
     ("gelbooru", False), ("rule34", False), ("safebooru", False),
     ("danbooru", False), ("e621", False), ("yandere", False), ("konachan", False),
     ("derpibooru", False), ("wallhaven", False), ("lemmy", False), ("civitai", False),
-    ("tbib", False), ("xbooru", False), ("pornpics", False), ("babehub", False), ("pictoa", False), ("erome", False),
+    ("tbib", False), ("xbooru", False), ("pornpics", False), ("babehub", False), ("pictoa", False),
+    ("elitebabes", False), ("erome", False),
 ]
 # Registered sites left out of the list on purpose (they need a user name, link or key, not a keyword):
 NOT_SEARCHABLE = {"soundgasm", "freesound", "coomer", "fapello", "kemono"}

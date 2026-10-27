@@ -9,7 +9,8 @@ GROUPS = [
                       "e621", "danbooru", "yandere", "konachan", "derpibooru"]),
     ("Audio", ["soundgasm", "freesound"]),
     ("Video", ["redgifs", "erome", "hypnotube", "pmvhaven"]),
-    ("Images", ["reddit", "wallhaven", "civitai", "lemmy", "coomer", "fapello", "kemono", "pornpics", "babehub", "pictoa"]),
+    ("Images", ["reddit", "wallhaven", "civitai", "lemmy", "coomer", "fapello", "kemono", "pornpics", "babehub",
+                "pictoa", "elitebabes"]),
 ]
 FALLBACK_GROUP = "Images"
 

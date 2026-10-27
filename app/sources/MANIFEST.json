@@ -1,7 +1,7 @@
 {
- "sources_version": "2026.10.28.1",
+ "sources_version": "2026.10.28.2",
  "files": {
-  "sources/__init__.py": "ab47f0c3a77d9b19",
+  "sources/__init__.py": "4a3dfa52aac09d9a",
   "sources/base.py": "578a5082f04adf59",
   "sources/booru_extra_sources.py": "b81716ab70402c5a",
   "sources/booru_family.py": "3366e1e7f362e173",
@@ -10,6 +10,7 @@
   "sources/danbooru_source.py": "e33b3b53d1a92373",
   "sources/derpibooru_source.py": "0684cb899e34e79b",
   "sources/e621_source.py": "6aa2f3a4551d4091",
+  "sources/elitebabes_source.py": "ee603865fa53cc8d",
   "sources/erome_source.py": "0e45226b43b13e2c",
   "sources/fapello_source.py": "0b0e25fad74f8312",
   "sources/freesound_source.py": "d07db5360ed3c5cc",

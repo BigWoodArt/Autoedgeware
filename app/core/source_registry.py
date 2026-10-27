@@ -19,6 +19,7 @@ from sources.kemono_source import KemonoSource
 from sources.freesound_source import FreesoundSource
 from sources.gallery_sites import PornPicsSource, BabehubSource
 from sources.pictoa_source import PictoaSource
+from sources.elitebabes_source import EliteBabesSource
 from ae_sources.video_sites import HypnotubeSource, PmvhavenSource   # the Media Collector files + two guards
 
 SOURCE_REGISTRY = {
@@ -48,6 +49,7 @@ SOURCE_REGISTRY = {
     "pornpics": PornPicsSource,
     "babehub": BabehubSource,
     "pictoa": PictoaSource,
+    "elitebabes": EliteBabesSource,
     "hypnotube": HypnotubeSource,
     "pmvhaven": PmvhavenSource,
 }

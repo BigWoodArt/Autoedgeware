@@ -1,3 +1,6 @@
+## v0.1.11
+- New: EliteBabes (sources/elitebabes_source.py). Tag slug via WP REST; CDN full images with thumb filtering.
+
 ## v0.1.10
 - New: Pictoa (sources/pictoa_source.py). Category slug listings; full-size CDN images.
 
