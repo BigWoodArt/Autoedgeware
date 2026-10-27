@@ -38,6 +38,7 @@ LIGHT_PROPERTIES = {
     "vd-lavc-threads": 2,                  # software decoding (when the graphics chip is not used)
     "demuxer-max-bytes": "16777216",       # 16 MiB read-ahead
     "demuxer-max-back-bytes": "4194304",   # 4 MiB kept for the loop
+    "hidpi-window-scale": "no",            # the popup is already in real pixels; mpv must not scale it again
 }
 
 

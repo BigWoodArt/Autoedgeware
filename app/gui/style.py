@@ -10,6 +10,7 @@ Nothing here holds program logic."""
 import tkinter as tk
 from tkinter import ttk
 
+from core.win_dpi import scale_px, ui_scale
 from gui import theme
 
 PAL = theme.PALETTE
@@ -39,8 +40,9 @@ class FlatButton(tk.Button):
         kw.setdefault("bd", 0)
         kw.setdefault("cursor", "hand2")
         kw.setdefault("highlightthickness", 0)
-        kw["padx"] = max(int(kw.get("padx", 0) or 0), 14)
-        kw["pady"] = max(int(kw.get("pady", 0) or 0), 7)
+        scale = ui_scale(parent)
+        kw["padx"] = max(scale_px(int(kw.get("padx", 0) or 0), scale), scale_px(14, scale))
+        kw["pady"] = max(scale_px(int(kw.get("pady", 0) or 0), scale), scale_px(7, scale))
         kw.setdefault("bg", PAL["panel3"])
         kw.setdefault("fg", PAL["white"])
         kw.setdefault("font", (FONT, 10, "bold"))
@@ -131,10 +133,15 @@ class ColumnList(tk.Frame):
 
     def __init__(self, parent, rows=5, bg=None, fg=None, font=None, text="", pad=10, **_ignored):
         bg = bg or PAL["panel2"]
-        super().__init__(parent, bg=bg, height=rows * self.ROW_H + 2 * pad)
+        scale = ui_scale(parent)
+        self._row_h = scale_px(self.ROW_H, scale)
+        self._col_w = scale_px(self.COL_W, scale)
+        self._char_px = scale_px(6, scale)
+        pad_px = scale_px(pad, scale)
+        super().__init__(parent, bg=bg, height=rows * self._row_h + 2 * pad_px)
         self.pack_propagate(False)
         self.grid_propagate(False)
-        self._rows, self._pad = rows, pad
+        self._rows, self._pad = rows, pad_px
         self._fg, self._font = fg or PAL["muted"], font or (FONT, 9)
         self._bg = bg
         self._lines = []
@@ -154,9 +161,9 @@ class ColumnList(tk.Frame):
     config = configure
 
     @staticmethod
-    def fit(line, width_px):
+    def fit(line, width_px, char_px=6):
         """Shorten a line with an ellipsis so it stays inside its column."""
-        room = max(8, (width_px - 12) // 6)
+        room = max(8, (width_px - char_px * 2) // char_px)
         return line if len(line) <= room else line[:room - 1].rstrip() + "\u2026"
 
     def columns_that_fit(self, width_px):
@@ -168,14 +175,15 @@ class ColumnList(tk.Frame):
         self._labels = []
         width = self.winfo_width()
         if width <= 1:
-            width = self.COL_W * 2          # not on screen yet: the real width arrives with <Configure>
-        cols = self.columns_that_fit(width - 2 * self._pad)
+            width = self._col_w * 2          # not on screen yet: the real width arrives with <Configure>
+        cols = max(1, int(width) // self._col_w)
         col_w = (width - 2 * self._pad) // cols
+        inset = max(1, self._char_px)
         for i, line in enumerate(self._lines[: self._rows * cols]):
-            lab = tk.Label(self, text=self.fit(line, col_w), bg=self._bg, fg=self._fg, font=self._font,
+            lab = tk.Label(self, text=self.fit(line, col_w, self._char_px), bg=self._bg, fg=self._fg, font=self._font,
                            anchor="w", justify="left")
-            lab.place(x=self._pad + (i // self._rows) * col_w, y=self._pad + (i % self._rows) * self.ROW_H,
-                      width=col_w - 6, height=self.ROW_H)
+            lab.place(x=self._pad + (i // self._rows) * col_w, y=self._pad + (i % self._rows) * self._row_h,
+                      width=col_w - inset, height=self._row_h)
             self._labels.append(lab)
 
 
@@ -209,6 +217,9 @@ class Toggle(tk.Frame):
             except tk.TclError:
                 bg = PAL["panel"]
         super().__init__(parent, bg=bg, highlightthickness=0, bd=0, cursor="hand2")
+        scale = ui_scale(parent)
+        self.W, self.H = scale_px(self.W, scale), scale_px(self.H, scale)
+        self._knob_pad = scale_px(3, scale)
         self._var = variable if variable is not None else tk.BooleanVar(value=False)
         self._cmd = command
         self._bg = bg
@@ -217,10 +228,11 @@ class Toggle(tk.Frame):
         self._fg = fg or PAL["white"]
         self.canvas = tk.Canvas(self, width=self.W, height=self.H, bg=bg, highlightthickness=0, bd=0,
                                 cursor="hand2")
-        self.canvas.pack(side="left", pady=4)
+        self.canvas.pack(side="left", pady=scale_px(4, scale))
+        shown_wrap = scale_px(wraplength, scale) if wraplength else 0
         self.label = tk.Label(self, text=text, bg=bg, fg=self._fg, font=font or (FONT, 9),
-                              anchor=anchor, justify=justify, wraplength=wraplength, cursor="hand2")
-        self.label.pack(side="left", padx=(9, 0), fill="x", expand=True)
+                              anchor=anchor, justify=justify, wraplength=shown_wrap, cursor="hand2")
+        self.label.pack(side="left", padx=(scale_px(9, scale), 0), fill="x", expand=True)
         for widget in (self, self.canvas, self.label):
             widget.bind("<Button-1>", self._click, add="+")
             widget.bind("<Enter>", self._enter, add="+")
@@ -252,7 +264,7 @@ class Toggle(tk.Frame):
             c.create_oval(0, 0, h, h, fill=track, outline=track)
             c.create_oval(w - h, 0, w, h, fill=track, outline=track)
             c.create_rectangle(h / 2, 0, w - h / 2, h, fill=track, outline=track)
-            pad = 3
+            pad = self._knob_pad
             x0 = w - h + pad if on else pad
             c.create_oval(x0, pad, x0 + h - 2 * pad, h - pad, fill=knob, outline=knob)
         except tk.TclError:
@@ -386,7 +398,8 @@ def style_scrollbar(root):
         pass
     style.configure("AE.Vertical.TScrollbar", background=PAL["panel3"], troughcolor=PAL["bg"],
                     bordercolor=PAL["bg"], lightcolor=PAL["panel3"], darkcolor=PAL["panel3"],
-                    arrowcolor=PAL["panel3"], gripcount=0, relief="flat", arrowsize=8, borderwidth=0)
+                    arrowcolor=PAL["panel3"], gripcount=0, relief="flat",
+                    arrowsize=scale_px(8, ui_scale(root)), borderwidth=0)
     style.map("AE.Vertical.TScrollbar",
               background=[("active", PAL["accent2"]), ("pressed", PAL["accent2"])],
               lightcolor=[("active", PAL["accent2"])], darkcolor=[("active", PAL["accent2"])])
@@ -396,8 +409,17 @@ def style_scrollbar(root):
 
 
 def center_on_screen(win, width, height):
-    """Open `win` at width x height in the middle of the screen (not the top-left corner)."""
+    """Open `win` at width x height in the middle of the screen (not the top-left corner).
+
+    `width` and `height` are the 100% sizes. They grow with the Windows scale.
+    """
+    scale = ui_scale(win)
+    width = scale_px(width, scale)
+    height = scale_px(height, scale)
     win.update_idletasks()
-    x = max(0, (win.winfo_screenwidth() - width) // 2)
-    y = max(0, (win.winfo_screenheight() - height) // 2 - 20)
+    screen_w, screen_h = win.winfo_screenwidth(), win.winfo_screenheight()
+    width = min(width, max(1, screen_w - scale_px(40, scale)))
+    height = min(height, max(1, screen_h - scale_px(60, scale)))
+    x = max(0, (screen_w - width) // 2)
+    y = max(0, (screen_h - height) // 2 - scale_px(20, scale))
     win.geometry(f"{width}x{height}+{x}+{y}")

@@ -21,6 +21,7 @@ from ae_settings.preset_io import export_preset, import_presets
 from ae_settings.settings import load_settings, save_settings
 from core import custom_intensity, monitors, ssl_fix, updater, engine_control, file_log, media_caps, min_size, startup_shortcut, video_tidy
 from core.api_keys import ALL_FIELDS, build_source_kwargs
+from core.win_dpi import apply_tk, enable, scale_px
 from core.engine_launch import start_engine
 from core.friendly import friendly
 from core.pool_stats import count_media, count_text, status_line
@@ -47,11 +48,14 @@ CUSTOM = "Custom"
 
 class AutoedgewareGUI(tk.Tk):
     def __init__(self):
+        enable()   # no-op if gui_main already did this; must be before the window exists
         super().__init__()
+        self.ui_scale = apply_tk(self)
         self.pal = theme.PALETTE
         self.title(f"Autoedgeware v{theme.read_version(BASE_DIR).lstrip('vV')}")
         self.configure(bg=self.pal["bg"])
-        self.geometry("700x860")
+        self._win_w, height = self._window_size()
+        self.geometry(f"{self._win_w}x{height}")
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -147,14 +151,27 @@ class AutoedgewareGUI(tk.Tk):
         if self.settings.get("check_for_updates", True):
             self.after(2500, self._start_update_check)
 
+    def _window_size(self):
+        """700x860 at 100%. Wider and taller by the Windows scale, but kept on the screen."""
+        scale = self.ui_scale
+        width = scale_px(700, scale)
+        height = scale_px(860, scale)
+        try:
+            width = min(width, max(scale_px(480, scale), self.winfo_screenwidth() - scale_px(40, scale)))
+            height = min(height, max(scale_px(480, scale), self.winfo_screenheight() - scale_px(80, scale)))
+        except tk.TclError:
+            pass
+        return width, height
+
     def _fit_height(self):
         """Grow the window just enough that the Main tab needs no scroll bar (never taller than the screen)."""
         self.update_idletasks()
         canvas = self.main_scroll.canvas
         extra = self.main_scroll.body.winfo_reqheight() - canvas.winfo_height()
         if extra > 0:
-            height = min(self.winfo_height() + extra + 6, self.winfo_screenheight() - 90)
-            self.geometry(f"700x{height}")
+            height = min(self.winfo_height() + extra + scale_px(6, self.ui_scale),
+                         self.winfo_screenheight() - scale_px(90, self.ui_scale))
+            self.geometry(f"{self._win_w}x{height}")
 
     # ---------- style helpers ----------
 
@@ -172,7 +189,7 @@ class AutoedgewareGUI(tk.Tk):
 
     def _hint(self, parent, text, wrap=560):
         return tk.Label(parent, text=text, bg=self.pal["panel"], fg=self.pal["muted"],
-                        font=("Segoe UI", 8), wraplength=wrap, justify="left")
+                        font=("Segoe UI", 8), wraplength=scale_px(wrap, self.ui_scale), justify="left")
 
     def _entry(self, parent, var, width=None):
         e = FlatEntry(parent, textvariable=var)
@@ -219,7 +236,7 @@ class AutoedgewareGUI(tk.Tk):
         inner = tk.Frame(bottom, bg=pal["panel"])
         inner.pack(fill="x", padx=20, pady=(10, 14))
         tk.Label(inner, textvariable=self.status_var, bg=pal["panel"], fg=pal["muted"], font=("Segoe UI", 9),
-                 anchor="w", justify="left", wraplength=660).pack(fill="x", pady=(0, 10))
+                 anchor="w", justify="left", wraplength=scale_px(660, self.ui_scale)).pack(fill="x", pady=(0, 10))
         brow = tk.Frame(inner, bg=pal["panel"])
         brow.pack(fill="x")
         self.run_btn = self._btn(brow, "Run", self.run_now, primary=True)
