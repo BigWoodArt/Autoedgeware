@@ -4,6 +4,7 @@ import re
 import json
 import time
 import random
+import threading
 import hashlib
 import subprocess
 import shutil
@@ -26,21 +27,66 @@ BROWSER_HEADERS = {
 }
 
 
-class RateLimiter:
-    def __init__(self, min_interval=MIN_REQUEST_INTERVAL):
-        self.min_interval = min_interval
-        self.last = 0.0
+def _retry_after(err, default=60):
+    """Seconds to wait after HTTP 429. Reddit's Retry-After when it sends one, otherwise 60."""
+    raw = None
+    headers = getattr(err, "headers", None)
+    if headers is not None:
+        try:
+            raw = headers.get("Retry-After")
+        except Exception:
+            raw = None
+    try:
+        secs = float(raw)
+    except (TypeError, ValueError):
+        secs = default
+    return max(1.0, min(secs, 180.0))
 
+
+def _subreddit_of(url):
+    m = re.search(r"/r/([^/?#]+)", url or "", re.I)
+    return m.group(1) if m else ""
+
+
+class RateLimiter:
+    """One clock for every RedditSource. A new object used to start at last=0 and fire immediately,
+    so the next subreddit in the queue walked into the same 429 the previous one had just earned."""
+    _lock = threading.Lock()
+    _last = 0.0
+    _cooldown_until = 0.0
     notify = None          # optional log(msg, level): told when we are about to sit out Reddit rate limiting
 
+    def __init__(self, min_interval=MIN_REQUEST_INTERVAL, clock=None, sleep=None):
+        self.min_interval = min_interval
+        self._clock = clock or time.time
+        self._sleep = sleep or time.sleep
+
+    @classmethod
+    def reset_shared(cls):
+        with cls._lock:
+            cls._last = 0.0
+            cls._cooldown_until = 0.0
+
+    @classmethod
+    def penalize(cls, seconds, clock=None):
+        """Hold every Reddit source until `seconds` from now. Survives the object that got the 429."""
+        now = (clock or time.time)()
+        with cls._lock:
+            cls._cooldown_until = max(cls._cooldown_until, now + max(0.0, float(seconds)))
+
     def wait(self):
-        elapsed = time.time() - self.last
-        if elapsed < self.min_interval:
-            gap = self.min_interval - elapsed
-            if self.notify and gap > 0.8:
-                self.notify(f"WAIT|{gap:.1f}|Reddit rate limiting", "wait")
-            time.sleep(gap)
-        self.last = time.time()
+        with RateLimiter._lock:
+            now = self._clock()
+            paced = RateLimiter._last + self.min_interval
+            ready = max(paced, RateLimiter._cooldown_until)
+            gap = ready - now
+            if gap < 0:
+                gap = 0.0
+            RateLimiter._last = now + gap
+        if gap > 0.8 and paced >= RateLimiter._cooldown_until and self.notify:
+            self.notify(f"WAIT|{gap:.1f}|Reddit rate limiting", "wait")
+        if gap:
+            self._sleep(gap)
 
 
 class RedditSource(Source):
@@ -153,10 +199,15 @@ class RedditSource(Source):
                     return response.read().decode("utf-8", errors="ignore")
             except urllib.error.HTTPError as e:
                 if e.code == 429 and attempt < retries:
-                    log("[HTTP 429] Rate limited by Reddit, waiting 60s...", "warning")
-                    log("WAIT|60|Reddit rate limiting", "wait")
-                    time.sleep(60)
-                    continue
+                    pause = _retry_after(e)
+                    RateLimiter.penalize(pause, self.rate_limiter._clock)
+                    log(f"[HTTP 429] Rate limited by Reddit, waiting {pause:g}s...", "warning")
+                    log(f"WAIT|{pause:g}|Reddit rate limiting", "wait")
+                    continue          # the next _throttle waits out the shared cooldown
+                if e.code == 404:
+                    name = _subreddit_of(url)
+                    log(f"r/{name} has no public feed" if name else f"No public feed: {url}", "error")
+                    return None
                 log(f"[HTTP Error {e.code}] {e.reason} -> {url}", "error")
                 return None
             except Exception as e:
@@ -177,15 +228,22 @@ class RedditSource(Source):
         with urllib.request.urlopen(req, timeout=20) as response:
             return response.read()
 
-    def _http_get_text(self, url, extra_headers=None, timeout=15):
-        self._throttle(url)
-        headers = dict(BROWSER_HEADERS)
-        headers.setdefault("Accept", "application/json")
-        if extra_headers:
-            headers.update(extra_headers)
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode("utf-8", errors="ignore")
+    def _http_get_text(self, url, extra_headers=None, timeout=15, retries=2):
+        for attempt in range(1, retries + 1):
+            self._throttle(url)
+            headers = dict(BROWSER_HEADERS)
+            headers.setdefault("Accept", "application/json")
+            if extra_headers:
+                headers.update(extra_headers)
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    return resp.read().decode("utf-8", errors="ignore")
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < retries:
+                    RateLimiter.penalize(_retry_after(e), self.rate_limiter._clock)
+                    continue
+                raise
 
     # ---------- feed ----------
     def build_rss_url(self, sub, sort, time_range):

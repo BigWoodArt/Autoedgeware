@@ -7,12 +7,27 @@ import html
 import json
 import os
 import re
+import urllib.error
 
 from sources.reddit_source import RedditSource as _Reddit
 
 MAX_ALBUM = 30
 REDGIFS_LINK = re.compile(r"redgifs\.com/(?:watch|ifr)/([A-Za-z0-9]+)", re.IGNORECASE)
 MIME_EXT = {"image/jpg": ".jpg", "image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}
+
+
+def _old_reddit(url):
+    return re.sub(r"^https://(?:www\.)?reddit\.com", "https://old.reddit.com", url, count=1, flags=re.I)
+
+
+def _looks_like_json(text):
+    return bool(text) and text.lstrip()[:1] in "[{"
+
+
+def _album_why(got):
+    if got == "":
+        return "page was not JSON"
+    return got
 
 
 def album_from_json(text):
@@ -51,12 +66,57 @@ def album_from_json(text):
 
 
 class RedditSource(_Reddit):
+    # "www" tries www then, on 403 or an HTML block page, old.reddit.com once.
+    # "old" keeps using the host that answered. "off" stops asking: Reddit is blocking album JSON,
+    # and every further gallery would spend another rate-limit slot to learn the same fact.
+    _json_route = "www"
+
     def __init__(self):
         super().__init__()
         self._albums = {}          # post id -> candidate lists of pictures 2..n
         self._log = lambda *a, **k: None
         self._skip = None          # the preset's seen ids (shared with every site)
         self._rg_of_post = {}      # reddit post id -> the Redgifs clip id it links to
+
+    @classmethod
+    def reset_runtime(cls):
+        """Test hook: album route and the shared Reddit clock."""
+        cls._json_route = "www"
+        from sources.reddit_source import RateLimiter
+        RateLimiter.reset_shared()
+
+    def _fetch_json(self, url):
+        """JSON text, '' when the body is HTML, or the exception."""
+        try:
+            text = self._http_get_text(url)
+        except Exception as ex:
+            return ex
+        return text if _looks_like_json(text) else ""
+
+    def _album_json(self, url):
+        """The post's JSON, or None. A 403 or an HTML block page tries old.reddit.com once,
+        then stops asking for the rest of this run."""
+        route = type(self)._json_route
+        if route == "off":
+            return None
+        first = _old_reddit(url) if route == "old" else url
+        got = self._fetch_json(first)
+        if isinstance(got, str) and got:
+            return got
+        blocked = got == "" or (isinstance(got, urllib.error.HTTPError) and got.code == 403)
+        old = _old_reddit(url)
+        if route == "www" and blocked and old != first:
+            got = self._fetch_json(old)
+            if isinstance(got, str) and got:
+                type(self)._json_route = "old"
+                return got
+            type(self)._json_route = "off"
+            self._log(f"   -> album lookup failed ({_album_why(got)}); later galleries keep the first picture only", "warning")
+            return None
+        self._log(f"   -> album lookup failed ({_album_why(got)}); saving the first picture only", "warning")
+        if route == "old" and blocked:
+            type(self)._json_route = "off"
+        return None
 
     @staticmethod
     def _post_id(entry):
@@ -75,12 +135,8 @@ class RedditSource(_Reddit):
                 return []
             self._rg_of_post[pid] = rg
         if pid and re.search(r"reddit\.com/gallery/", link, re.IGNORECASE) and not getattr(self, "_site_check", False):
-            try:
-                text = self._http_get_text(entry["link"].split("?")[0].rstrip("/") + ".json?raw_json=1")
-                pics = album_from_json(text)
-            except Exception as ex:
-                self._log(f"   -> album lookup failed ({ex}); saving the first picture only", "warning")
-                pics = []
+            text = self._album_json(entry["link"].split("?")[0].rstrip("/") + ".json?raw_json=1")
+            pics = album_from_json(text) if text else []
             if pics:
                 self._albums[pid] = pics[1:]
                 return pics[0]
