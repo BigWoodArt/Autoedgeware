@@ -1,3 +1,38 @@
+## v0.1.19
+- EliteBabes: fall back to WP post search when there is no exact tag slug (e.g. captions).
+- Pornhub GIFs: ranged retry on any HTTP 503 when size is known.
+
+## v0.1.18
+- Pornhub GIFs: ranged HTTP download for files >= 8 MB (CDN 503 on single GET); shared `http_bytes.py`.
+- JsonBoardSource: `_download_bytes` hook for custom media fetch.
+
+## v0.1.17
+- Pornhub GIFs: raise oversized skip cap from 25 MB to 100 MB (still a scraper constant, not a GUI setting).
+
+## v0.1.16
+- Fix: Pictoa downloads use t*.pictoa.com URLs from listings (s* 404 on search).
+- Fix: Pornhub GIFs skip CDN files over 25 MB (avoids HTTP 503 on huge GIFs); Referer set per GIF page.
+
+## v0.1.15
+- Fix: Pictoa uses `?s=` search for plain keywords (not only `/c/slug/`).
+- Fix: Pornhub Photos walks `/album/` then `/photo/` (search no longer lists `/photo/`).
+- Fix: Pornhub GIFs resolve `data-gif` from each `/gif/{id}` page.
+
+## v0.1.14
+- New: Pornhub GIFs (sources/pornhub_source.py). GIF search with tokenised file URLs from listings.
+
+## v0.1.13
+- New: Pornhub Photos (sources/pornhub_source.py). Album search and per-photo large stills.
+
+## v0.1.12
+- New: PornGIF (sources/porngif_source.py). Site search -> direct GIF files.
+
+## v0.1.11
+- New: EliteBabes (sources/elitebabes_source.py). Tag slug via WP REST; CDN full images with thumb filtering.
+
+## v0.1.10
+- New: Pictoa (sources/pictoa_source.py). Category slug listings; full-size CDN images.
+
 ## v0.1.9
 - New: PornPics and Babehub (sources/gallery_sites.py). Search, open the galleries, download every picture inside; tags and a minimum rating (percent / likes). No date is available on either site.
 
