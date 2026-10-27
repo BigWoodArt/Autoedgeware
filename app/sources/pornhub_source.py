@@ -1,6 +1,7 @@
 """Pornhub album stills and GIF search (HTML listings; GIF file URLs resolved per detail page)."""
 import re
 import urllib.parse
+import urllib.request
 
 from sources.json_board import JsonBoardSource, ApiError
 
@@ -17,6 +18,7 @@ LARGE_PIC_RE = re.compile(
 ALBUM_ID_RE = re.compile(r"/album/(\d+)", re.I)
 PHOTO_ID_RE = re.compile(r"/photo/(\d+)", re.I)
 GIF_ID_RE = re.compile(r"/gif/(\d+)", re.I)
+MAX_GIF_BYTES = 25 * 1048576   # CDN returns HTTP 503 on full GET for very large GIFs (~50MB+)
 
 
 def _album_search_url(query, page):
@@ -137,7 +139,22 @@ class PornhubGifsSource(JsonBoardSource):
         return raw
 
     def _download_headers(self):
-        return dict(BROWSER_HEADERS, Referer=f"{HOST}/gifs")
+        ref = getattr(self, "_gif_referer", None) or f"{HOST}/gifs"
+        return dict(BROWSER_HEADERS, Referer=ref)
+
+    def _gif_byte_size(self, url):
+        """Content-Range total from a 0-byte range request; 0 if unknown."""
+        try:
+            req = urllib.request.Request(
+                url, headers={**self._download_headers(), "Range": "bytes=0-0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                cr = resp.headers.get("Content-Range") or ""
+                m = re.search(r"/(\d+)\s*$", cr)
+                if m:
+                    return int(m.group(1))
+        except Exception:
+            pass
+        return 0
 
     def _gif_search_url(self, query, page):
         params = urllib.parse.urlencode({"search": query, "page": str(page)})
@@ -165,6 +182,7 @@ class PornhubGifsSource(JsonBoardSource):
         pid = post.get("id")
         if not pid:
             return None
+        self._gif_referer = f"{HOST}/gif/{pid}"
         try:
             html = self._html(f"{HOST}/gif/{pid}", f"{HOST}/gifs")
         except Exception:
@@ -172,4 +190,9 @@ class PornhubGifsSource(JsonBoardSource):
         m = re.search(r'data-gif="([^"]+)"', html, re.I)
         if not m:
             return None
-        return m.group(1).replace("&amp;", "&")
+        url = m.group(1).replace("&amp;", "&")
+        size = self._gif_byte_size(url)
+        if size and size > MAX_GIF_BYTES:
+            log(f"   -> skipped gif {pid}: {size // 1048576} MB (over {MAX_GIF_BYTES // 1048576} MB cap)", "warning")
+            return None
+        return url

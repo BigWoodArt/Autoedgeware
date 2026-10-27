@@ -20,14 +20,11 @@ ALBUM_SLUG_RE = re.compile(r"/albums/([^/]+)")
 CATEGORY_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*-\d+$", re.I)
 
 
-def _upgrade_url(url):
-    return re.sub(r"https://t(\d+)\.pictoa\.com/", r"https://s\1.pictoa.com/", url, flags=re.I)
-
-
 def _extract_posts(html):
     seen, posts = set(), []
     for m in PAIRED_RE.finditer(html):
-        url = _upgrade_url(m.group(2))
+        # Keep the listing URL (t*.pictoa.com). Upgrading to s* 404s on site-search results.
+        url = m.group(2)
         if url in seen:
             continue
         seen.add(url)
@@ -40,7 +37,7 @@ def _extract_posts(html):
     if posts:
         return posts
     for m in LOOSE_RE.finditer(html):
-        url = _upgrade_url(m.group(0))
+        url = m.group(0)
         if url in seen:
             continue
         seen.add(url)
