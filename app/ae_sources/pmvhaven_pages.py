@@ -14,7 +14,9 @@ import urllib.parse
 from sources.base import Source
 from core.media_item import MediaItem
 from core.winproc import quiet
-from ae_sources import _web
+from ae_sources import _web, pmvhaven_dns
+
+pmvhaven_dns.install()
 
 SITE = "https://pmvhaven.com"
 VIDEO_LINK_RE = re.compile(r'href=["\'](?:https?://(?:www\.)?pmvhaven\.com)?(/video/[A-Za-z0-9_\-%.]*?_([0-9a-f]{24}))(?:[?"\'#&])', re.I)
