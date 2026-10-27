@@ -35,6 +35,12 @@ class Control(unittest.TestCase):
         with self.assertRaises(netlog.DownloadInterrupted):
             self.read_with(ctl, b"x" * 3 * 1048576, {"Content-Length": str(3 * 1048576), "Content-Type": "video/mp4"})
 
+    def test_pmvhaven_cap_is_higher_than_the_rest(self):
+        from core.scheduler import MAX_DOWNLOAD_MB, PMVHAVEN_DOWNLOAD_MB, download_cap_bytes
+        self.assertEqual(download_cap_bytes("reddit"), MAX_DOWNLOAD_MB * 1048576)
+        self.assertEqual(download_cap_bytes("pmvhaven"), PMVHAVEN_DOWNLOAD_MB * 1048576)
+        self.assertGreater(PMVHAVEN_DOWNLOAD_MB, MAX_DOWNLOAD_MB)
+
     def test_scheduler_wires_it(self):
         from pathlib import Path
         src = (Path(__file__).parent.parent / "core" / "scheduler.py").read_text(encoding="utf-8")
