@@ -60,7 +60,7 @@ from core.wallpaper_changer import WallpaperChanger
 from core.popup_fallback import make_popup_chooser
 from core.preset_pick import pick_preset
 from core.splash_pick import choose_splash
-from core.engine_overrides import apply_forced, effective_cfg
+from core.engine_overrides import apply_forced, effective_cfg, install_popup_behavior
 from gui.theme import INTENSITY_PRESETS
 
 sys.path.insert(0, str(ENGINE_SRC))
@@ -211,6 +211,7 @@ def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
     twice would spawn a second one."""
     quiet_children.install()   # no console-window flashes from ffprobe / the mpv helper (Windows)
     _write_config_overrides()
+    install_popup_behavior()   # timer-only close and right-drag (see core/engine_overrides.py)
     utils.init_logging("autoedgeware_engine")
 
     media_roots = [MEDIA_ROOT / p.name for p in presets]   # the caller decides which presets run

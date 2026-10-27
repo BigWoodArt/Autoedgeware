@@ -1,8 +1,16 @@
 """Autoedgeware-specific (not shared): settings the engine always forces."""
+import os
 import unittest
 
-from core.engine_overrides import apply_forced
+from core.engine_overrides import apply_forced, click_close_blocked, clamp_popup_pos, POPUP_BEHAVIOR
 from gui.theme import INTENSITY_PRESETS
+
+BASE = os.path.join(os.path.dirname(__file__), "..")
+
+
+def _read(*parts):
+    with open(os.path.join(BASE, *parts), encoding="utf-8") as f:
+        return f.read()
 
 
 class Forced(unittest.TestCase):
@@ -54,3 +62,43 @@ class StaleMoving(unittest.TestCase):
         self.assertEqual(custom["movingChance"], 0)
         self.assertEqual(effective_cfg({"edgeware_cfg_name": "Custom", "edgeware_cfg": {"movingChance": 30}},
                                        INTENSITY_PRESETS)["movingChance"], 30)       # a Custom value is kept
+
+
+class PopupBehavior(unittest.TestCase):
+    def test_timer_only_needs_timeout(self):
+        apply_forced({}, {"popup_close_by_timer_only": True, "popup_drag_right_button": True})
+        self.assertEqual((POPUP_BEHAVIOR["timer_only"], POPUP_BEHAVIOR["rmb_drag"]), (False, True))
+        apply_forced({}, {"popup_timeout_enabled": True, "popup_timeout_seconds": 7,
+                          "popup_close_by_timer_only": True, "popup_drag_right_button": False})
+        self.assertEqual((POPUP_BEHAVIOR["timer_only"], POPUP_BEHAVIOR["rmb_drag"]), (True, False))
+
+    def test_click_close_skips_fullscreen(self):
+        apply_forced({}, {"popup_timeout_enabled": True, "popup_close_by_timer_only": True})
+        self.assertTrue(click_close_blocked(type("P", (), {})()))
+        self.assertFalse(click_close_blocked(type("P", (), {"_ae_full": True})()))
+
+    def test_wiring(self):
+        src = _read("core", "engine_overrides.py")
+        self.assertIn("Popup.compute_geometry = compute_geometry", src)
+        self.assertIn("clamp_popup_pos", src)
+        self.assertIn("install_popup_behavior()", _read("run_engine.py"))
+        gui = _read("gui", "app.py")
+        self.assertIn("popup_close_by_timer_only", gui)
+        self.assertIn("popup_drag_right_button", gui)
+        settings = _read("ae_settings", "settings.py")
+        self.assertIn('"popup_close_by_timer_only": False', settings)
+        self.assertIn('"popup_drag_right_button": False', settings)
+
+    def test_negative_tk_geometry_breaks_edgeware_split(self):
+        # Tk reports a window at x=-10 as "800x600-10+20". Edgeware then does
+        # map(int, geometry().replace("x", "+").split("+")) and the next popup dies.
+        parts = "800x600-10+20".replace("x", "+").split("+")
+        with self.assertRaises(ValueError):
+            list(map(int, parts))
+
+    def test_drag_stays_on_the_monitor(self):
+        mon = type("M", (), {"x": 0, "y": 0, "width": 1920, "height": 1080})()
+        self.assertEqual(clamp_popup_pos(-40, -10, 400, 300, mon), (0, 0))
+        self.assertEqual(clamp_popup_pos(3000, 2000, 400, 300, mon), (1520, 780))
+        left = type("M", (), {"x": -1920, "y": 0, "width": 1920, "height": 1080})()
+        self.assertEqual(clamp_popup_pos(-4000, 10, 400, 300, left), (-1920, 10))
