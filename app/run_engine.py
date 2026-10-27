@@ -2,7 +2,7 @@
 
   - Real Edgeware feature code (vendored, unmodified, under
     edgeware_core/) does the actual popping - images, video, audio,
-    tray icon, hibernate, startup splash - timed by whichever
+    tray icon, hibernate, opening popup - timed by whichever
     intensity preset was applied (same delay/popupMod/vidMod/audioMod/
     etc. fields the GUI's Options already writes).
   - A LivePack (live_pack.py) feeds it media straight from
@@ -59,7 +59,7 @@ from core.panic_users import PANIC_USERS
 from core.wallpaper_changer import WallpaperChanger
 from core.popup_fallback import make_popup_chooser
 from core.preset_pick import pick_preset
-from core.splash_pick import choose_splash
+from core.splash_pick import choose_splash, first_popup_media
 from core.engine_overrides import apply_forced, effective_cfg
 from gui.theme import INTENSITY_PRESETS
 
@@ -92,7 +92,6 @@ from features.misc import (
     send_notification,
 )
 from features.prompt import Prompt
-from features.startup_splash import StartupSplash
 from features.subliminal_popup import SubliminalPopup
 from features.video_popup import VideoPopup
 import features.popup as _popup_module
@@ -186,22 +185,23 @@ def panic(root, settings, state, condition=True, disable=True):
     _original_panic(root, settings, state, condition=condition, disable=disable)
 
 
-def _start_with_splash(root, settings, pack, media_roots, start_main):
-    """Splash = a random picture from this run's own folder. On a fresh run it waits up to 10 s for the
-    first image to land, then falls back to the default splash."""
-    default = pack.startup_splash
-
+def _start_popup_loop(root, media_roots, start_main):
+    """Wait up to 10 s for a downloaded image, then start the normal popup loop.
+    That loop's first roll is the only opening window, so 'one popup at a time' stays one popup.
+    The stock loading splash is not shown."""
     def go(path, from_pool):
-        pack.startup_splash = Path(path)
-        file_log.write(BASE_DIR, f"splash: {'from the media pool' if from_pool else 'default (no image arrived in time)'}"
-                       f" - {Path(path).name}", "info")
-        StartupSplash(settings, pack, start_main)
+        media = first_popup_media(path, from_pool)
+        if media is None:
+            file_log.write(BASE_DIR, "first popup: no downloaded image yet - not showing the stock loading splash", "info")
+        else:
+            file_log.write(BASE_DIR, f"first popup: downloaded image ready ({Path(media).name}); popup loop starts", "info")
+        start_main()
 
-    choose_splash(root, media_roots, default, go, timeout_ms=10000)
+    choose_splash(root, media_roots, None, go, timeout_ms=10000)
 
 
 def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
-    """Sets up Settings/LivePack/State/tray/startup-splash and kicks
+    """Sets up Settings/LivePack/State/tray/popup loop and kicks
     off the real popup loop against the given Tk root. Does NOT call
     root.mainloop() itself, so it works either standalone (main(),
     below, builds its own hidden root) or attached to an
@@ -433,7 +433,7 @@ def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
 
     def begin():
         if settings.startup_splash:
-            _start_with_splash(root, settings, pack, media_roots, start_main)
+            _start_popup_loop(root, media_roots, start_main)
         else:
             start_main()
 
