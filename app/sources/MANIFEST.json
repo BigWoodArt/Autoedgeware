@@ -1,7 +1,7 @@
 {
- "sources_version": "2026.10.19.4",
+ "sources_version": "2026.10.28.1",
  "files": {
-  "sources/__init__.py": "c58e4440503985a0",
+  "sources/__init__.py": "ab47f0c3a77d9b19",
   "sources/base.py": "578a5082f04adf59",
   "sources/booru_extra_sources.py": "b81716ab70402c5a",
   "sources/booru_family.py": "3366e1e7f362e173",
@@ -22,6 +22,7 @@
   "sources/kemono_source.py": "0e0416c293044057",
   "sources/lemmy_source.py": "dff497b409d83b81",
   "sources/moebooru_sources.py": "2cbaa22e7490885e",
+  "sources/pictoa_source.py": "7a12924212852b52",
   "sources/pmvhaven_source.py": "c890ce87f56fedc7",
   "sources/realbooru_source.py": "77e73b802931c8fd",
   "sources/reddit_source.py": "c78035952ad42c25",

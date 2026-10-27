@@ -1,4 +1,4 @@
-SOURCES_VERSION = "2026.10.19.4"   # bump on any change to the shared scraper files
+SOURCES_VERSION = "2026.10.28.1"   # bump on any change to the shared scraper files
 
 from sources.reddit_source import RedditSource
 from sources.redgifs_source import RedgifsSource
@@ -24,6 +24,7 @@ from sources.fapello_source import FapelloSource
 from sources.pmvhaven_source import PmvHavenSource
 from sources.hypnotube_source import HypnoTubeSource
 from sources.gallery_sites import PornPicsSource, BabehubSource
+from sources.pictoa_source import PictoaSource
 
 SOURCE_CLASSES = [RedditSource, RedgifsSource, SoundgasmSource, FreesoundSource, EromeSource,
                   GelbooruSource, RealbooruSource, HypnohubSource,
@@ -32,7 +33,7 @@ SOURCE_CLASSES = [RedditSource, RedgifsSource, SoundgasmSource, FreesoundSource,
                   WallhavenSource, LemmySource,
                   SexComPicsSource, SexComGifsSource, HentaiFoundrySource,
                   KemonoSource, CoomerSource, FapelloSource,
-                  PmvHavenSource, HypnoTubeSource, PornPicsSource, BabehubSource]
+                  PmvHavenSource, HypnoTubeSource, PornPicsSource, BabehubSource, PictoaSource]
 # Civitai is switched off: image search has been down and public search returns models, not tagged images.
 DISABLED_SOURCE_CLASSES = [CivitaiSource]
 SOURCE_BY_LABEL = {c.label: c for c in SOURCE_CLASSES}
@@ -46,8 +47,8 @@ SOURCE_GROUPS = [
     ("Image boards", ["gelbooru", "realbooru", "hypnohub", "rule34", "safebooru", "tbib", "xbooru",
                       "e621", "danbooru", "yandere", "konachan", "derpibooru"]),
     ("Video", ["pmvhaven", "hypnotube", "redgifs", "sexcom_gifs"]),
-    ("Image / mixed", ["reddit", "wallhaven", "hentaifoundry", "sexcom_pics", "pornpics", "babehub", "kemono", "coomer", "fapello",
-                       "erome", "lemmy"]),
+    ("Image / mixed", ["reddit", "wallhaven", "hentaifoundry", "sexcom_pics", "pornpics", "babehub", "pictoa", "kemono", "coomer",
+                       "fapello", "erome", "lemmy"]),
     ("Audio", ["soundgasm", "freesound"]),
 ]
 

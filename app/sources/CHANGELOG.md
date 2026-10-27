@@ -1,3 +1,6 @@
+## v0.1.10
+- New: Pictoa (sources/pictoa_source.py). Category slug listings; full-size CDN images.
+
 ## v0.1.9
 - New: PornPics and Babehub (sources/gallery_sites.py). Search, open the galleries, download every picture inside; tags and a minimum rating (percent / likes). No date is available on either site.
 
