@@ -101,3 +101,56 @@ class PornhubImagesSource(JsonBoardSource):
                 })
         more = bool(self._photo_ids or self._list_pages)
         return posts, (1 if more else None)
+
+
+class PornhubGifsSource(JsonBoardSource):
+    id, label = "pornhub_gifs", "Pornhub GIFs"
+    category = "Gallery sites"
+    prefix = "phg_"
+    base_url = HOST
+    default_limit = 40
+    min_interval = 2.0
+    has_media_priority = False
+    order_choices = [("site", "Site order", {})]
+    default_order = "site"
+    min_score_choices = []
+    check_query = "sexy"
+    query_hint = "GIF search words"
+    order_help = "GIF search listings; file URLs include a short-lived token from the page."
+
+    @classmethod
+    def suggest(cls, query):
+        q = (query or "").strip()
+        if not q:
+            return []
+        return [{"value": q, "label": f"{cls.label} {q}", "count": None}]
+
+    def _html(self, url, referer):
+        raw = self._open(url, headers=dict(BROWSER_HEADERS, Accept="text/html", Referer=referer)).decode(
+            "utf-8", "replace")
+        if "Just a moment" in raw[:3000]:
+            raise ApiError("got a browser-check page instead of results")
+        return raw
+
+    def _download_headers(self):
+        return dict(BROWSER_HEADERS, Referer=f"{HOST}/gifs")
+
+    def _gif_search_url(self, query, page):
+        params = urllib.parse.urlencode({"search": query, "page": str(page)})
+        return f"{HOST}/gifs/search?{params}"
+
+    def _page(self, query, cursor):
+        page = cursor or 1
+        if page > 3:
+            return [], None
+        html = self._html(self._gif_search_url(query, page), f"{HOST}/gifs")
+        seen, posts = set(), []
+        for m in re.finditer(r'data-gif="(https:[^"]+)"', html, re.I):
+            url = m.group(1).replace("&amp;", "&")
+            gid = re.search(r"/(\d+)[ab]\.gif", url.split("?")[0], re.I)
+            pid = gid.group(1) if gid else url
+            if pid in seen:
+                continue
+            seen.add(pid)
+            posts.append({"id": pid, "url": url, "tags": [], "title": f"gif {pid}"})
+        return posts, (page + 1 if posts else None)

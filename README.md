@@ -33,6 +33,7 @@ Contains unmodified Edgeware++ code (GPL-3.0, see `app/edgeware_core/COPYING`).
 
 ## Changelog
 
+- **0.25** — New gallery sources: Pictoa, EliteBabes, PornGIF, Pornhub Photos and GIFs.
 - **0.24** — Monitors: choose which screens popups, fullscreen videos, the spiral and Hero use (Popups tab). Default is all.
 - **0.23.4** — Advanced > Network: optional "Skip certificate checks" (off by default; only on a trusted network).
 - **0.23.3** — Fixes "certificate has expired" download errors on PCs with an old certificate store (also trusts certifi's list; checking stays on). Rule34 now has API key and user ID fields (Advanced > Site keys).

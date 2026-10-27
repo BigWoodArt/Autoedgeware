@@ -1,3 +1,6 @@
+## v0.1.14
+- New: Pornhub GIFs (sources/pornhub_source.py). GIF search with tokenised file URLs from listings.
+
 ## v0.1.13
 - New: Pornhub Photos (sources/pornhub_source.py). Album search and per-photo large stills.
 
