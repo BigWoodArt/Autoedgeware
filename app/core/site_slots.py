@@ -7,7 +7,8 @@ in parallel. Fast image boards are not limited here. No Tk or Edgeware imports; 
 import contextlib
 import threading
 
-ONE_AT_A_TIME = {"reddit", "redgifs", "erome", "soundgasm", "freesound", "coomer", "fapello", "kemono", "hypnotube", "pmvhaven", "pornpics", "babehub"}
+ONE_AT_A_TIME = {"reddit", "redgifs", "erome", "soundgasm", "freesound", "coomer", "fapello", "kemono", "hypnotube",
+                 "pmvhaven", "pornpics", "babehub", "pornhub_images", "pornhub_gifs"}
 _slots = {site: threading.Semaphore(1) for site in ONE_AT_A_TIME}
 
 

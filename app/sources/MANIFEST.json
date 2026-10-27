@@ -1,7 +1,7 @@
 {
- "sources_version": "2026.10.28.3",
+ "sources_version": "2026.10.28.4",
  "files": {
-  "sources/__init__.py": "440370c5488adcaa",
+  "sources/__init__.py": "2619bd37b557cb95",
   "sources/base.py": "578a5082f04adf59",
   "sources/booru_extra_sources.py": "b81716ab70402c5a",
   "sources/booru_family.py": "3366e1e7f362e173",
@@ -26,6 +26,7 @@
   "sources/pictoa_source.py": "7a12924212852b52",
   "sources/pmvhaven_source.py": "c890ce87f56fedc7",
   "sources/porngif_source.py": "74a2a1bd8f653dd1",
+  "sources/pornhub_source.py": "e1c60fde60c63bc8",
   "sources/realbooru_source.py": "77e73b802931c8fd",
   "sources/reddit_source.py": "c78035952ad42c25",
   "sources/redgifs_source.py": "489eec2cdcd4c095",

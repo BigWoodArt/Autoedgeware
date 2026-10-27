@@ -21,6 +21,7 @@ from sources.gallery_sites import PornPicsSource, BabehubSource
 from sources.pictoa_source import PictoaSource
 from sources.elitebabes_source import EliteBabesSource
 from sources.porngif_source import PornGifSource
+from sources.pornhub_source import PornhubImagesSource
 from ae_sources.video_sites import HypnotubeSource, PmvhavenSource   # the Media Collector files + two guards
 
 SOURCE_REGISTRY = {
@@ -52,6 +53,7 @@ SOURCE_REGISTRY = {
     "pictoa": PictoaSource,
     "elitebabes": EliteBabesSource,
     "porngif": PornGifSource,
+    "pornhub_images": PornhubImagesSource,
     "hypnotube": HypnotubeSource,
     "pmvhaven": PmvhavenSource,
 }

@@ -1,3 +1,6 @@
+## v0.1.13
+- New: Pornhub Photos (sources/pornhub_source.py). Album search and per-photo large stills.
+
 ## v0.1.12
 - New: PornGIF (sources/porngif_source.py). Site search -> direct GIF files.
 
