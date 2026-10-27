@@ -1,11 +1,16 @@
-"""Picks the startup splash from the preset's own downloaded media, and waits briefly for the first
-image on a fresh run. No Edgeware or Tk imports (the caller passes in a root with .after())."""
+"""Picks the opening image from the preset's own downloaded media, and waits briefly for the first
+image on a fresh run. No Edgeware or Tk imports (the caller passes in a root with .after()).
+
+The stock Edgeware loading splash is not part of the downloaded gallery and is not a popup.
+first_popup_media() rejects it. The popup loop opens the first window; this module does not."""
 import os
 import random
 import time
 from pathlib import Path
 
-SPLASH_EXTS = {".jpg", ".jpeg", ".png", ".gif"}
+# Same still-image types the popup pool shows (live_pack.IMAGE_EXTS). WebP galleries must count,
+# or the opener falls through to the stock splash while the real popups use the gallery.
+SPLASH_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 MIN_AGE_SECONDS = 1.0     # a file touched this recently may still be mid-download
 
 
@@ -20,7 +25,7 @@ def _openable(path):
 
 
 def pick_splash(folders, rng=random, min_age=MIN_AGE_SECONDS, now=None, check=_openable, tries=8):
-    """A random finished gif/jpg/png from any of the folders, or None."""
+    """A random finished still image from any of the folders, or None."""
     now = time.time() if now is None else now
     found = []
     for folder in folders:
@@ -42,6 +47,16 @@ def pick_splash(folders, rng=random, min_age=MIN_AGE_SECONDS, now=None, check=_o
     for path in found[:tries]:
         if check(path):
             return path
+    return None
+
+
+def first_popup_media(path, from_pool):
+    """A downloaded file, or None. The stock loading splash is rejected.
+
+    The caller must not open a second window for this path. The normal popup roll is the first
+    window, so 'one popup at a time' is not doubled."""
+    if from_pool and path:
+        return path
     return None
 
 
