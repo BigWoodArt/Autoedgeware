@@ -1,4 +1,4 @@
-SOURCES_VERSION = "2026.10.28.5"   # bump on any change to the shared scraper files
+SOURCES_VERSION = "2026.10.28.6"   # bump on any change to the shared scraper files
 
 from sources.reddit_source import RedditSource
 from sources.redgifs_source import RedgifsSource

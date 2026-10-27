@@ -1,3 +1,8 @@
+## v0.1.15
+- Fix: Pictoa uses `?s=` search for plain keywords (not only `/c/slug/`).
+- Fix: Pornhub Photos walks `/album/` then `/photo/` (search no longer lists `/photo/`).
+- Fix: Pornhub GIFs resolve `data-gif` from each `/gif/{id}` page.
+
 ## v0.1.14
 - New: Pornhub GIFs (sources/pornhub_source.py). GIF search with tokenised file URLs from listings.
 

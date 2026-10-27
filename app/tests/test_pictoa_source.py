@@ -14,6 +14,17 @@ def _listing_html():
 
 
 class Pictoa(unittest.TestCase):
+    def test_search_mode_for_keywords(self):
+        listing = _listing_html()
+
+        def handler(url):
+            if "pictoa.com" in url and ("s=latex" in url or "?s=latex" in url):
+                return reply(listing)
+            return reply(b"\xff\xd8\xff" + url.encode()[-24:])
+
+        items, *_ = fetch("pictoa", "latex", handler, limit=2)
+        self.assertEqual(len(items), 2)
+
     def test_fetch_category(self):
         listing = _listing_html()
 

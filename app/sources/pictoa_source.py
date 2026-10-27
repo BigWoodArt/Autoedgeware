@@ -1,5 +1,7 @@
-"""Pictoa category pages: /c/{slug}/ and paginated listings -> full-size CDN images."""
+"""Pictoa: category slug (/c/name-123/) or site search (?s=keywords) -> full-size CDN images."""
 import re
+import urllib.error
+import urllib.parse
 
 from sources.json_board import JsonBoardSource, ApiError
 
@@ -15,6 +17,7 @@ PAIRED_RE = re.compile(
 )
 LOOSE_RE = re.compile(r"https://t\d+\.pictoa\.com/media/galleries/[^\"'\\\s]+", re.I)
 ALBUM_SLUG_RE = re.compile(r"/albums/([^/]+)")
+CATEGORY_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*-\d+$", re.I)
 
 
 def _upgrade_url(url):
@@ -58,8 +61,8 @@ class PictoaSource(JsonBoardSource):
     order_choices = [("site", "Site order", {})]
     default_order = "site"
     min_score_choices = []
-    query_hint = "category slug (e.g. glamour-494) or /c/glamour-494/ link"
-    order_help = "Pictures follow the site's category listing order, page by page."
+    query_hint = "search words (e.g. latex) or category slug (glamour-494)"
+    order_help = "Keywords use the site search; slugs like glamour-494 use a category listing."
 
     @classmethod
     def suggest(cls, query):
@@ -74,7 +77,12 @@ class PictoaSource(JsonBoardSource):
     def _normalize_query(self, query):
         q = (query or "").strip()
         m = re.search(r"/c/([a-z0-9][a-z0-9-]*)/?", q, re.I)
-        return m.group(1) if m else q.strip("/")
+        if m:
+            q = m.group(1)
+        else:
+            q = q.strip("/")
+        self._mode = "category" if CATEGORY_SLUG_RE.match(q) else "search"
+        return q
 
     def _headers(self):
         return dict(BROWSER_HEADERS, Accept="text/html", Referer=f"{self.base_url}/")
@@ -83,15 +91,30 @@ class PictoaSource(JsonBoardSource):
         return dict(BROWSER_HEADERS, Referer=f"{self.base_url}/")
 
     def _listing_url(self, slug, page):
-        base = f"{self.base_url}/c/{slug}/"
-        return base if page <= 1 else f"{base}page{page}.html"
+        mode = getattr(self, "_mode", "search")
+        if mode == "category":
+            base = f"{self.base_url}/c/{slug}/"
+            return base if page <= 1 else f"{base}page{page}.html"
+        if page <= 1:
+            return f"{self.base_url}/?s={urllib.parse.quote_plus(slug)}"
+        return f"{self.base_url}/page{page}.html?s={urllib.parse.quote_plus(slug)}"
+
+    def _read_listing(self, slug, page):
+        url = self._listing_url(slug, page)
+        try:
+            return self._open(url, headers=self._headers()).decode("utf-8", "replace")
+        except urllib.error.HTTPError as ex:
+            if ex.code == 404 and getattr(self, "_mode", "") == "category" and page == 1:
+                self._mode = "search"
+                return self._read_listing(slug, 1)
+            raise
 
     def _page(self, query, cursor):
         slug = query
         page = cursor or 1
         if page > 21:
             return [], None
-        raw = self._open(self._listing_url(slug, page), headers=self._headers()).decode("utf-8", "replace")
+        raw = self._read_listing(slug, page)
         if "Just a moment" in raw[:3000]:
             raise ApiError("got a browser-check page instead of results")
         posts = _extract_posts(raw)

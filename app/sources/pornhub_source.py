@@ -1,4 +1,4 @@
-"""Pornhub album stills: search listings, then each photo page for the large variant."""
+"""Pornhub album stills and GIF search (HTML listings; GIF file URLs resolved per detail page)."""
 import re
 import urllib.parse
 
@@ -14,24 +14,18 @@ LARGE_PIC_RE = re.compile(
     r"https://ei\.phncdn\.com/pics/albums/[^\"'\\\s]*\(m=e-yaaGqaq\)[^\"'\\\s]+",
     re.I,
 )
-
-
-def _photo_ids(html):
-    ids = set()
-    for m in re.finditer(r"/photo/(\d+)", html, re.I):
-        ids.add(m.group(1))
-    for m in re.finditer(r"original_(\d+)\.", html, re.I):
-        ids.add(m.group(1))
-    return list(ids)
-
-
-def _large_pics(html):
-    return list({m.group(0) for m in LARGE_PIC_RE.finditer(html)})
+ALBUM_ID_RE = re.compile(r"/album/(\d+)", re.I)
+PHOTO_ID_RE = re.compile(r"/photo/(\d+)", re.I)
+GIF_ID_RE = re.compile(r"/gif/(\d+)", re.I)
 
 
 def _album_search_url(query, page):
     params = urllib.parse.urlencode({"search": query, "page": str(page)})
     return f"{HOST}/albums/search?{params}"
+
+
+def _large_pics(html):
+    return list({m.group(0) for m in LARGE_PIC_RE.finditer(html)})
 
 
 class PornhubImagesSource(JsonBoardSource):
@@ -47,7 +41,7 @@ class PornhubImagesSource(JsonBoardSource):
     min_score_choices = []
     check_query = "sexy"
     query_hint = "album search words"
-    order_help = "Album search, then each photo page for the largest still (many requests per item)."
+    order_help = "Album search, then each album and photo page for the largest still (many requests)."
 
     @classmethod
     def suggest(cls, query):
@@ -59,7 +53,8 @@ class PornhubImagesSource(JsonBoardSource):
     def fetch(self, query, limit, sort, time_range, dest_dir, log, progress, stop_event,
               early_preview_cb=None, randomize=False, prioritize_images=False,
               item_cb=None, skip_ids=None):
-        self._list_pages = [1, 2]
+        self._search_pages = [1, 2]
+        self._album_ids = []
         self._photo_ids = []
         return super().fetch(query, limit, sort, time_range, dest_dir, log, progress, stop_event,
                              early_preview_cb, randomize, prioritize_images, item_cb, skip_ids)
@@ -75,10 +70,19 @@ class PornhubImagesSource(JsonBoardSource):
         return dict(BROWSER_HEADERS, Referer=f"{HOST}/albums")
 
     def _refill_photo_ids(self, query):
-        while self._list_pages and len(self._photo_ids) < 80:
-            page = self._list_pages.pop(0)
+        while self._search_pages and len(self._album_ids) < 12:
+            page = self._search_pages.pop(0)
             html = self._html(_album_search_url(query, page), f"{HOST}/albums")
-            for pid in _photo_ids(html):
+            for aid in ALBUM_ID_RE.findall(html):
+                if aid not in self._album_ids:
+                    self._album_ids.append(aid)
+        while self._album_ids and len(self._photo_ids) < 80:
+            aid = self._album_ids.pop(0)
+            try:
+                html = self._html(f"{HOST}/album/{aid}", f"{HOST}/albums")
+            except Exception:
+                continue
+            for pid in PHOTO_ID_RE.findall(html):
                 if pid not in self._photo_ids:
                     self._photo_ids.append(pid)
 
@@ -99,7 +103,7 @@ class PornhubImagesSource(JsonBoardSource):
                     "tags": [],
                     "title": f"photo {pid}",
                 })
-        more = bool(self._photo_ids or self._list_pages)
+        more = bool(self._photo_ids or self._album_ids or self._search_pages)
         return posts, (1 if more else None)
 
 
@@ -116,7 +120,7 @@ class PornhubGifsSource(JsonBoardSource):
     min_score_choices = []
     check_query = "sexy"
     query_hint = "GIF search words"
-    order_help = "GIF search listings; file URLs include a short-lived token from the page."
+    order_help = "GIF search, then each GIF page for the signed file URL."
 
     @classmethod
     def suggest(cls, query):
@@ -145,12 +149,27 @@ class PornhubGifsSource(JsonBoardSource):
             return [], None
         html = self._html(self._gif_search_url(query, page), f"{HOST}/gifs")
         seen, posts = set(), []
-        for m in re.finditer(r'data-gif="(https:[^"]+)"', html, re.I):
-            url = m.group(1).replace("&amp;", "&")
-            gid = re.search(r"/(\d+)[ab]\.gif", url.split("?")[0], re.I)
-            pid = gid.group(1) if gid else url
-            if pid in seen:
+        for gid in GIF_ID_RE.findall(html):
+            if gid in seen:
                 continue
-            seen.add(pid)
-            posts.append({"id": pid, "url": url, "tags": [], "title": f"gif {pid}"})
+            seen.add(gid)
+            posts.append({
+                "id": gid,
+                "url": f"{HOST}/gif/{gid}",
+                "tags": [],
+                "title": f"gif {gid}",
+            })
         return posts, (page + 1 if posts else None)
+
+    def _resolve_url(self, post, log):
+        pid = post.get("id")
+        if not pid:
+            return None
+        try:
+            html = self._html(f"{HOST}/gif/{pid}", f"{HOST}/gifs")
+        except Exception:
+            return None
+        m = re.search(r'data-gif="([^"]+)"', html, re.I)
+        if not m:
+            return None
+        return m.group(1).replace("&amp;", "&")
