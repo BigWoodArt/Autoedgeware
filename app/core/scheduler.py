@@ -40,6 +40,12 @@ from core.thumbs import looks_like_error_page
 BLACKLIST_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "edgeware_core", "data", "blacklist")
 
 MAX_DOWNLOAD_MB = 300     # a single file bigger than this is skipped
+PMVHAVEN_DOWNLOAD_MB = 2048  # PMV Haven videos run long; the 300 MB cap dropped them
+
+
+def download_cap_bytes(source_type):
+    mb = PMVHAVEN_DOWNLOAD_MB if source_type == "pmvhaven" else MAX_DOWNLOAD_MB
+    return mb * 1048576
 AUDIO_SOURCE_TYPES = {"soundgasm"}  # long-form audio - a handful is plenty, unlike 20 images
 MAX_AUDIO_DOWNLOAD_LIMIT = 5
 
@@ -328,7 +334,7 @@ class PresetWorker(threading.Thread):
                 return                           # stopped while waiting
             netlog.begin(http_calls)             # per-thread: records this fetch's HTTP calls
             # Stop/Panic ends a download within about a second; a file over the size limit is skipped, not held in memory
-            netlog.set_control(netlog.DownloadControl(self.stop_event, threading.Event(), MAX_DOWNLOAD_MB * 1048576))
+            netlog.set_control(netlog.DownloadControl(self.stop_event, threading.Event(), download_cap_bytes(source_type)))
             try:
                 items = self._fetch_one_source(source_entry, dest_dir, item_cb=register, skip_ids=seen)
             finally:

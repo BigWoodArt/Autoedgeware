@@ -14,6 +14,7 @@ import urllib.parse
 from sources.base import Source
 from core.media_item import MediaItem
 from core.winproc import quiet
+from core.scheduler import PMVHAVEN_DOWNLOAD_MB
 from ae_sources import _web, pmvhaven_dns
 
 pmvhaven_dns.install()
@@ -85,7 +86,7 @@ class PmvhavenPageSource(Source):
                            check=True, **quiet())
             if not os.path.exists(part) or os.path.getsize(part) < 10_000:
                 raise ValueError("ffmpeg wrote an empty file")
-            if os.path.getsize(part) > _web.MAX_VIDEO_BYTES:
+            if os.path.getsize(part) > PMVHAVEN_DOWNLOAD_MB * 1048576:
                 raise ValueError("file is over the size limit")
             os.replace(part, dest)
         except subprocess.CalledProcessError as ex:
