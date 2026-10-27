@@ -1,3 +1,11 @@
+## v0.1.19
+- EliteBabes: fall back to WP post search when there is no exact tag slug (e.g. captions).
+- Pornhub GIFs: ranged retry on any HTTP 503 when size is known.
+
+## v0.1.18
+- Pornhub GIFs: ranged HTTP download for files >= 8 MB (CDN 503 on single GET); shared `http_bytes.py`.
+- JsonBoardSource: `_download_bytes` hook for custom media fetch.
+
 ## v0.1.17
 - Pornhub GIFs: raise oversized skip cap from 25 MB to 100 MB (still a scraper constant, not a GUI setting).
 

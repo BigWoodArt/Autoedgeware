@@ -61,8 +61,8 @@ class EliteBabesSource(JsonBoardSource):
     order_choices = [("site", "Site order", {})]
     default_order = "site"
     min_score_choices = []
-    query_hint = "tag slug (e.g. beautiful)"
-    order_help = "Images follow the tag feed order from the site's API."
+    query_hint = "tag slug (e.g. beautiful) or search word if no exact tag"
+    order_help = "Exact tag slug when it exists; otherwise a WordPress post search for the word."
 
     @classmethod
     def suggest(cls, query):
@@ -77,7 +77,7 @@ class EliteBabesSource(JsonBoardSource):
             return [entry]
         match = next((t for t in data if isinstance(t, dict) and t.get("slug") == q), None)
         if not match:
-            return []
+            return [entry]
         if match.get("count"):
             entry["count"] = int(match["count"])
         return [entry]
@@ -102,14 +102,25 @@ class EliteBabesSource(JsonBoardSource):
             raise ApiError(f'no tag "{slug}"')
         return int(match["id"])
 
+    def _posts_json(self, query, page, mode):
+        if mode == "tag":
+            params = urllib.parse.urlencode({"tags": str(self._tag), "per_page": "50", "page": str(page)})
+            referer = f"{self.base_url}/tag/{query}/"
+        else:
+            params = urllib.parse.urlencode({"search": query, "per_page": "50", "page": str(page)})
+            referer = f"{self.base_url}/"
+        return self._open(f"{HOST}/wp-json/wp/v2/posts?{params}",
+                          headers=dict(self._headers(), Referer=referer)).decode("utf-8", "replace")
+
     def _page(self, query, cursor):
         page = cursor or 1
         if page == 1:
-            self._tag = self._tag_id(query)
-        params = urllib.parse.urlencode({"tags": str(self._tag), "per_page": "50", "page": str(page)})
-        referer = f"{self.base_url}/tag/{query}/"
-        raw = self._open(f"{HOST}/wp-json/wp/v2/posts?{params}",
-                         headers=dict(self._headers(), Referer=referer)).decode("utf-8", "replace")
+            try:
+                self._tag = self._tag_id(query)
+                self._mode = "tag"
+            except ApiError:
+                self._mode = "search"
+        raw = self._posts_json(query, page, getattr(self, "_mode", "tag"))
         try:
             data = json.loads(raw)
         except ValueError:

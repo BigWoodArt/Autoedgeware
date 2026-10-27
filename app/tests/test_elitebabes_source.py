@@ -38,6 +38,22 @@ class EliteBabes(unittest.TestCase):
         self.assertTrue(all("cdn.elitebabes.com" in u for u in urls))
         self.assertFalse(any("_w200" in u for u in urls))
 
+    def test_search_when_no_tag(self):
+        posts_body = json.dumps([{
+            "title": {"rendered": "Cap set"},
+            "content": {"rendered": "https://www.elitebabes.com/content/2024/01/photo_z.jpg"},
+        }])
+
+        def handler(url):
+            if "/tags?" in url:
+                return reply("[]")
+            if "search=captions" in url:
+                return reply(posts_body)
+            return reply(b"\xff\xd8\xff")
+
+        items, *_ = fetch("elitebabes", "captions", handler, limit=2)
+        self.assertEqual(len(items), 1)
+
     def test_registered(self):
         from sources import SOURCE_BY_ID
         self.assertEqual(SOURCE_BY_ID["elitebabes"].prefix, "eb_")

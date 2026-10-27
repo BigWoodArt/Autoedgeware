@@ -174,7 +174,7 @@ class JsonBoardSource(Source):
                     log(f"   -> media probe failed for {pid}", "warning")
                     continue
                 try:
-                    content = self._open(url, headers=self._download_headers(), timeout=40)
+                    content = self._download_bytes(url, log)
                 except Exception as ex:
                     log(f"   -> failed to fetch {pid}: {self._explain(ex)}", "warning")
                     continue
@@ -220,6 +220,10 @@ class JsonBoardSource(Source):
     def _resolve_url(self, post, log):
         """Hook: the file URL for a post (default: the one the listing gave). Return None to skip the post."""
         return post.get("url")
+
+    def _download_bytes(self, url, log=None):
+        """Hook: fetch media bytes (subclasses may use ranged GET for huge CDN files)."""
+        return self._open(url, headers=self._download_headers(), timeout=40)
 
     def _download_headers(self):
         return {"User-Agent": self.user_agent, "Referer": (self.base_url or "") + "/"}

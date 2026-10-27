@@ -1,8 +1,10 @@
 """Pornhub album stills and GIF search (HTML listings; GIF file URLs resolved per detail page)."""
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 
+from sources.http_bytes import download_ranged, probe_byte_size
 from sources.json_board import JsonBoardSource, ApiError
 
 BROWSER_HEADERS = {
@@ -18,7 +20,8 @@ LARGE_PIC_RE = re.compile(
 ALBUM_ID_RE = re.compile(r"/album/(\d+)", re.I)
 PHOTO_ID_RE = re.compile(r"/photo/(\d+)", re.I)
 GIF_ID_RE = re.compile(r"/gif/(\d+)", re.I)
-MAX_GIF_BYTES = 100 * 1048576   # CDN may 503 on full GET for extremely large GIFs; skip above this
+MAX_GIF_BYTES = 100 * 1048576   # skip above this (scraper cap, not a GUI setting)
+RANGE_GIF_BYTES = 8 * 1048576   # PH CDN often 503 on full GET above ~8–10 MB; use Range chunks
 
 
 def _album_search_url(query, page):
@@ -143,18 +146,25 @@ class PornhubGifsSource(JsonBoardSource):
         return dict(BROWSER_HEADERS, Referer=ref)
 
     def _gif_byte_size(self, url):
-        """Content-Range total from a 0-byte range request; 0 if unknown."""
+        return probe_byte_size(url, self._download_headers())
+
+    def _download_bytes(self, url, log=None):
+        size = getattr(self, "_current_gif_size", 0) or self._gif_byte_size(url)
+        headers = self._download_headers()
+        if size and size >= RANGE_GIF_BYTES:
+            if log:
+                log(f"   -> ranged download ({size // 1048576} MB gif)", "info")
+            return download_ranged(url, size, headers, wait=self._wait)
         try:
-            req = urllib.request.Request(
-                url, headers={**self._download_headers(), "Range": "bytes=0-0"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                cr = resp.headers.get("Content-Range") or ""
-                m = re.search(r"/(\d+)\s*$", cr)
-                if m:
-                    return int(m.group(1))
-        except Exception:
-            pass
-        return 0
+            return super()._download_bytes(url, log)
+        except urllib.error.HTTPError as ex:
+            if ex.code == 503:
+                size = size or self._gif_byte_size(url)
+                if size:
+                    if log:
+                        log(f"   -> full GET failed ({ex.code}); retrying with ranges", "warning")
+                    return download_ranged(url, size, headers, wait=self._wait)
+            raise
 
     def _gif_search_url(self, query, page):
         params = urllib.parse.urlencode({"search": query, "page": str(page)})
@@ -192,6 +202,7 @@ class PornhubGifsSource(JsonBoardSource):
             return None
         url = m.group(1).replace("&amp;", "&")
         size = self._gif_byte_size(url)
+        self._current_gif_size = size
         if size and size > MAX_GIF_BYTES:
             log(f"   -> skipped gif {pid}: {size // 1048576} MB (over {MAX_GIF_BYTES // 1048576} MB scraper cap)", "warning")
             return None
