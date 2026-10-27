@@ -15,6 +15,7 @@ import utils
 from os_utils import set_borderless, set_clickthrough
 
 from core import engine_control, file_log, hero_assets, hero_logic
+from core.win_dpi import scale_px, ui_scale
 
 try:
     import winsound
@@ -51,20 +52,22 @@ class HeroBar(tk.Toplevel):
         set_borderless(self)
         self.attributes("-topmost", True)
         self.attributes("-alpha", 0.85)
-        self.w, self.h = monitor.width, BAR_H
-        self.geometry(f"{self.w}x{self.h}+{monitor.x}+{monitor.y + monitor.height - BAR_H - BOTTOM_MARGIN}")
+        self._px = lambda n: scale_px(n, ui_scale(root))   # bar was drawn for 100%; text now follows Windows
+        self.w, self.h = monitor.width, self._px(BAR_H)
+        self.geometry(f"{self.w}x{self.h}+{monitor.x}+{monitor.y + monitor.height - self.h - self._px(BOTTOM_MARGIN)}")
         self.canvas = tk.Canvas(self, width=self.w, height=self.h, bg=BG, highlightthickness=0)
         self.canvas.pack()
-        self.cx, self.cy = self.w // 2, 100
+        self.cx, self.cy = self.w // 2, self._px(100)
         self.px_per_s = (self.w - self.cx) / TRAVEL_S
-        self.canvas.create_line(0, self.cy, self.w, self.cy, fill="#3a3a52", width=4)
-        self.ring = self.canvas.create_oval(self.cx - 36, self.cy - 36, self.cx + 36, self.cy + 36,
-                                            outline=RING, width=3)
+        self.canvas.create_line(0, self.cy, self.w, self.cy, fill="#3a3a52", width=self._px(4))
+        ring = self._px(36)
+        self.ring = self.canvas.create_oval(self.cx - ring, self.cy - ring, self.cx + ring, self.cy + ring,
+                                            outline=RING, width=self._px(3))
         self.show_text = show_text
-        self.text_item = self.canvas.create_text(self.w // 2, 30, text="", fill=BG,
+        self.text_item = self.canvas.create_text(self.w // 2, self._px(30), text="", fill=BG,
                                                  font=("Segoe UI", 22, "bold"))
         self.text, self.text_since = "", 0.0
-        self.next_item = self.canvas.create_text(24, 68, text="", fill=NEXT_TEXT, anchor="w",
+        self.next_item = self.canvas.create_text(self._px(24), self._px(68), text="", fill=NEXT_TEXT, anchor="w",
                                                  font=("Segoe UI", 13))
         self.next_text = ""
         self.circles = []                 # [hit time on the session clock, canvas item]
@@ -85,7 +88,8 @@ class HeroBar(tk.Toplevel):
             self.canvas.itemconfigure(self.next_item, text=text)
 
     def add_circle(self, t_hit):
-        item = self.canvas.create_oval(self.w, self.cy - 16, self.w + 32, self.cy + 16, fill=CIRCLE, outline="")
+        r = self._px(16)
+        item = self.canvas.create_oval(self.w, self.cy - r, self.w + r * 2, self.cy + r, fill=CIRCLE, outline="")
         self.circles.append([t_hit, item])
 
     def flash(self, until):
@@ -101,13 +105,14 @@ class HeroBar(tk.Toplevel):
                 continue
             x = self.cx + (t_hit - now) * self.px_per_s
             near = abs(t_hit - now) < 0.12
-            r = 20 if near else 16
+            r = self._px(20) if near else self._px(16)
             self.canvas.coords(item, x - r, self.cy - r, x + r, self.cy + r)
             self.canvas.itemconfigure(item, fill=CIRCLE_NEAR if near else CIRCLE)
             keep.append([t_hit, item])
         self.circles = keep
         lit = hold or now < self.flash_until
-        self.canvas.itemconfigure(self.ring, outline=GREEN if lit else RING, width=8 if lit else 3,
+        self.canvas.itemconfigure(self.ring, outline=GREEN if lit else RING,
+                                  width=self._px(8) if lit else self._px(3),
                                   fill=GREEN_FILL if now < self.flash_until else "")
         if self.show_text and self.text:
             self.canvas.itemconfigure(self.text_item, fill=_blend(BG, TEXT, (now - self.text_since) / 0.6))

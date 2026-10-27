@@ -19,6 +19,18 @@ import ast
 import io
 import sys
 
+# Same per-monitor mode as the main window, before mpv loads. A player that
+# disagrees about DPI draws the video in the wrong place on a scaled screen.
+if sys.platform == "win32":
+    try:
+        import ctypes
+        _dpi = ctypes.windll.user32.SetProcessDpiAwarenessContext
+        _dpi.argtypes = [ctypes.c_void_p]
+        _dpi.restype = ctypes.c_int
+        _dpi(ctypes.c_void_p(-4))   # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    except Exception:
+        pass
+
 import mpv
 from PIL import Image
 
@@ -30,7 +42,8 @@ for key, value in properties.items():
     player[key] = value
 
 # Light settings for many small popups (same list as VideoPlayer.LIGHT_PROPERTIES); unknown names are skipped.
-for key, value in {"vd-lavc-threads": 2, "demuxer-max-bytes": "16777216", "demuxer-max-back-bytes": "4194304"}.items():
+for key, value in {"vd-lavc-threads": 2, "demuxer-max-bytes": "16777216", "demuxer-max-back-bytes": "4194304",
+                   "hidpi-window-scale": "no"}.items():
     try:
         player[key] = value
     except Exception:

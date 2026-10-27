@@ -19,11 +19,12 @@ This replaces config.pyw entirely - Edgeware's own settings come from
 edgeware_core/data/config.json, written here from Autoedgeware's own
 settings.json (the same intensity bundle the GUI already manages).
 """
-# Edgeware expects to run DPI-unaware (its own launchers do this). Must happen
-# before any Tk window exists, or 4K/scaled screens misplace video popups.
+# Windows display scale has to be chosen before any Tk window, or the UI is
+# bitmap-stretched. Video popups stay aligned because this is per-monitor v2
+# (see core/win_dpi.py), not the old "pretend the screen is 96 DPI" mode.
 try:
-    from ctypes import windll
-    windll.shcore.SetProcessDpiAwareness(0)
+    from core.win_dpi import enable
+    enable()
 except Exception:
     pass
 
@@ -462,6 +463,8 @@ def main():
 
     root = Tk()
     root.withdraw()
+    from core.win_dpi import apply_tk
+    apply_tk(root)   # popup captions follow the same Windows scale as the settings window
     _pack, state, _settings = build_and_start(root, presets)
 
     try:
