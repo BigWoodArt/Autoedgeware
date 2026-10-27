@@ -78,6 +78,8 @@ class AutoedgewareGUI(tk.Tk):
         self.hib_sleep_max_var = tk.StringVar(value=str(s.get("hibernate_sleep_max_minutes", 15)))
         self.popup_timeout_var = tk.BooleanVar(value=s.get("popup_timeout_enabled", False))
         self.popup_timeout_seconds_var = tk.StringVar(value=str(s.get("popup_timeout_seconds", 10)))
+        self.popup_timer_only_var = tk.BooleanVar(value=s.get("popup_close_by_timer_only", False))
+        self.popup_drag_var = tk.BooleanVar(value=s.get("popup_drag_right_button", False))
         self.monitor_list = monitors.list_monitors()
         _off = set(s.get("disabled_monitors") or [])
         self.monitor_vars = {name: tk.BooleanVar(value=name not in _off) for name, _l, _p in self.monitor_list}
@@ -369,6 +371,16 @@ class AutoedgewareGUI(tk.Tk):
         ac = self._card(body, "AUTO-CLOSE")
         self._check(ac, "Close popups by themselves after (sec):", self.popup_timeout_var).pack(anchor="w")
         self._entry(ac, self.popup_timeout_seconds_var, width=8).pack(anchor="w", pady=(2, 0))
+        timer_only = self._check(ac, "Only the timer can close (not a click)", self.popup_timer_only_var)
+        timer_only.pack(anchor="w", pady=(8, 0))
+
+        def _timer_only_state(*_a):
+            timer_only.configure(state="normal" if self.popup_timeout_var.get() else "disabled")
+
+        self.popup_timeout_var.trace_add("write", _timer_only_state)
+        _timer_only_state()
+        self._check(ac, "Move a popup with the right mouse button", self.popup_drag_var).pack(anchor="w", pady=(4, 0))
+        self._hint(ac, "Panic, Stop and Esc still close popups.").pack(anchor="w", pady=(6, 0))
 
         fs = self._card(body, "FULLSCREEN VIDEO")
         self._hint(fs, "Wide videos can fill a monitor, with other popups on top.").pack(anchor="w", pady=(0, 4))
@@ -816,6 +828,8 @@ class AutoedgewareGUI(tk.Tk):
             self.settings["popup_timeout_seconds"] = int(self.popup_timeout_seconds_var.get())
         except ValueError:
             self.settings["popup_timeout_seconds"] = 10
+        self.settings["popup_close_by_timer_only"] = bool(self.popup_timer_only_var.get())
+        self.settings["popup_drag_right_button"] = bool(self.popup_drag_var.get())
         self.settings["gelbooru_api_key"] = self.gelbooru_key_var.get().strip()
         self.settings["gelbooru_user_id"] = self.gelbooru_uid_var.get().strip()
         for setting_key, var in self.api_key_vars.items():

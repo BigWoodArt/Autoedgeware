@@ -1,8 +1,16 @@
 """Autoedgeware-specific (not shared): settings the engine always forces."""
+import os
 import unittest
 
-from core.engine_overrides import apply_forced
+from core.engine_overrides import apply_forced, click_close_blocked, POPUP_BEHAVIOR
 from gui.theme import INTENSITY_PRESETS
+
+BASE = os.path.join(os.path.dirname(__file__), "..")
+
+
+def _read(*parts):
+    with open(os.path.join(BASE, *parts), encoding="utf-8") as f:
+        return f.read()
 
 
 class Forced(unittest.TestCase):
@@ -54,3 +62,26 @@ class StaleMoving(unittest.TestCase):
         self.assertEqual(custom["movingChance"], 0)
         self.assertEqual(effective_cfg({"edgeware_cfg_name": "Custom", "edgeware_cfg": {"movingChance": 30}},
                                        INTENSITY_PRESETS)["movingChance"], 30)       # a Custom value is kept
+
+
+class PopupBehavior(unittest.TestCase):
+    def test_timer_only_needs_timeout(self):
+        apply_forced({}, {"popup_close_by_timer_only": True, "popup_drag_right_button": True})
+        self.assertEqual((POPUP_BEHAVIOR["timer_only"], POPUP_BEHAVIOR["rmb_drag"]), (False, True))
+        apply_forced({}, {"popup_timeout_enabled": True, "popup_timeout_seconds": 7,
+                          "popup_close_by_timer_only": True, "popup_drag_right_button": False})
+        self.assertEqual((POPUP_BEHAVIOR["timer_only"], POPUP_BEHAVIOR["rmb_drag"]), (True, False))
+
+    def test_click_close_skips_fullscreen(self):
+        apply_forced({}, {"popup_timeout_enabled": True, "popup_close_by_timer_only": True})
+        self.assertTrue(click_close_blocked(type("P", (), {})()))
+        self.assertFalse(click_close_blocked(type("P", (), {"_ae_full": True})()))
+
+    def test_wiring(self):
+        self.assertIn("install_popup_behavior()", _read("run_engine.py"))
+        gui = _read("gui", "app.py")
+        self.assertIn("popup_close_by_timer_only", gui)
+        self.assertIn("popup_drag_right_button", gui)
+        settings = _read("ae_settings", "settings.py")
+        self.assertIn('"popup_close_by_timer_only": False', settings)
+        self.assertIn('"popup_drag_right_button": False', settings)
