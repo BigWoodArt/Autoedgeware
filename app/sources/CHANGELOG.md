@@ -1,3 +1,6 @@
+## v0.1.12
+- New: PornGIF (sources/porngif_source.py). Site search -> direct GIF files.
+
 ## v0.1.11
 - New: EliteBabes (sources/elitebabes_source.py). Tag slug via WP REST; CDN full images with thumb filtering.
 

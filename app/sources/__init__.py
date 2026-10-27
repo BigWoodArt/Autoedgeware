@@ -1,4 +1,4 @@
-SOURCES_VERSION = "2026.10.28.2"   # bump on any change to the shared scraper files
+SOURCES_VERSION = "2026.10.28.3"   # bump on any change to the shared scraper files
 
 from sources.reddit_source import RedditSource
 from sources.redgifs_source import RedgifsSource
@@ -26,6 +26,7 @@ from sources.hypnotube_source import HypnoTubeSource
 from sources.gallery_sites import PornPicsSource, BabehubSource
 from sources.pictoa_source import PictoaSource
 from sources.elitebabes_source import EliteBabesSource
+from sources.porngif_source import PornGifSource
 
 SOURCE_CLASSES = [RedditSource, RedgifsSource, SoundgasmSource, FreesoundSource, EromeSource,
                   GelbooruSource, RealbooruSource, HypnohubSource,
@@ -34,7 +35,8 @@ SOURCE_CLASSES = [RedditSource, RedgifsSource, SoundgasmSource, FreesoundSource,
                   WallhavenSource, LemmySource,
                   SexComPicsSource, SexComGifsSource, HentaiFoundrySource,
                   KemonoSource, CoomerSource, FapelloSource,
-                  PmvHavenSource, HypnoTubeSource, PornPicsSource, BabehubSource, PictoaSource, EliteBabesSource]
+                  PmvHavenSource, HypnoTubeSource, PornPicsSource, BabehubSource, PictoaSource, EliteBabesSource,
+                  PornGifSource]
 # Civitai is switched off: image search has been down and public search returns models, not tagged images.
 DISABLED_SOURCE_CLASSES = [CivitaiSource]
 SOURCE_BY_LABEL = {c.label: c for c in SOURCE_CLASSES}
@@ -47,7 +49,7 @@ CATEGORIES = sorted({c.category for c in SOURCE_CLASSES})
 SOURCE_GROUPS = [
     ("Image boards", ["gelbooru", "realbooru", "hypnohub", "rule34", "safebooru", "tbib", "xbooru",
                       "e621", "danbooru", "yandere", "konachan", "derpibooru"]),
-    ("Video", ["pmvhaven", "hypnotube", "redgifs", "sexcom_gifs"]),
+    ("Video", ["pmvhaven", "hypnotube", "redgifs", "sexcom_gifs", "porngif"]),
     ("Image / mixed", ["reddit", "wallhaven", "hentaifoundry", "sexcom_pics", "pornpics", "babehub", "pictoa", "elitebabes",
                        "kemono", "coomer",
                        "fapello", "erome", "lemmy"]),
