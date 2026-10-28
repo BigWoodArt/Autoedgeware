@@ -2,7 +2,7 @@
 
   - Real Edgeware feature code (vendored, unmodified, under
     edgeware_core/) does the actual popping - images, video, audio,
-    tray icon, hibernate, startup splash - timed by whichever
+    tray icon, hibernate, opening popup - timed by whichever
     intensity preset was applied (same delay/popupMod/vidMod/audioMod/
     etc. fields the GUI's Options already writes).
   - A LivePack (live_pack.py) feeds it media straight from
@@ -19,11 +19,12 @@ This replaces config.pyw entirely - Edgeware's own settings come from
 edgeware_core/data/config.json, written here from Autoedgeware's own
 settings.json (the same intensity bundle the GUI already manages).
 """
-# Edgeware expects to run DPI-unaware (its own launchers do this). Must happen
-# before any Tk window exists, or 4K/scaled screens misplace video popups.
+# Windows display scale has to be chosen before any Tk window, or the UI is
+# bitmap-stretched. Video popups stay aligned because this is per-monitor v2
+# (see core/win_dpi.py), not the old "pretend the screen is 96 DPI" mode.
 try:
-    from ctypes import windll
-    windll.shcore.SetProcessDpiAwareness(0)
+    from core.win_dpi import enable
+    enable()
 except Exception:
     pass
 
@@ -59,8 +60,8 @@ from core.panic_users import PANIC_USERS
 from core.wallpaper_changer import WallpaperChanger
 from core.popup_fallback import make_popup_chooser
 from core.preset_pick import pick_preset
-from core.splash_pick import choose_splash
-from core.engine_overrides import apply_forced, effective_cfg
+from core.splash_pick import choose_splash, first_popup_media
+from core.engine_overrides import apply_forced, effective_cfg, install_popup_behavior
 from gui.theme import INTENSITY_PRESETS
 
 sys.path.insert(0, str(ENGINE_SRC))
@@ -92,7 +93,6 @@ from features.misc import (
     send_notification,
 )
 from features.prompt import Prompt
-from features.startup_splash import StartupSplash
 from features.subliminal_popup import SubliminalPopup
 from features.video_popup import VideoPopup
 import features.popup as _popup_module
@@ -186,22 +186,23 @@ def panic(root, settings, state, condition=True, disable=True):
     _original_panic(root, settings, state, condition=condition, disable=disable)
 
 
-def _start_with_splash(root, settings, pack, media_roots, start_main):
-    """Splash = a random picture from this run's own folder. On a fresh run it waits up to 10 s for the
-    first image to land, then falls back to the default splash."""
-    default = pack.startup_splash
-
+def _start_popup_loop(root, media_roots, start_main):
+    """Wait up to 10 s for a downloaded image, then start the normal popup loop.
+    That loop's first roll is the only opening window, so 'one popup at a time' stays one popup.
+    The stock loading splash is not shown."""
     def go(path, from_pool):
-        pack.startup_splash = Path(path)
-        file_log.write(BASE_DIR, f"splash: {'from the media pool' if from_pool else 'default (no image arrived in time)'}"
-                       f" - {Path(path).name}", "info")
-        StartupSplash(settings, pack, start_main)
+        media = first_popup_media(path, from_pool)
+        if media is None:
+            file_log.write(BASE_DIR, "first popup: no downloaded image yet - not showing the stock loading splash", "info")
+        else:
+            file_log.write(BASE_DIR, f"first popup: downloaded image ready ({Path(media).name}); popup loop starts", "info")
+        start_main()
 
-    choose_splash(root, media_roots, default, go, timeout_ms=10000)
+    choose_splash(root, media_roots, None, go, timeout_ms=10000)
 
 
 def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
-    """Sets up Settings/LivePack/State/tray/startup-splash and kicks
+    """Sets up Settings/LivePack/State/tray/popup loop and kicks
     off the real popup loop against the given Tk root. Does NOT call
     root.mainloop() itself, so it works either standalone (main(),
     below, builds its own hidden root) or attached to an
@@ -211,6 +212,7 @@ def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
     twice would spawn a second one."""
     quiet_children.install()   # no console-window flashes from ffprobe / the mpv helper (Windows)
     _write_config_overrides()
+    install_popup_behavior()   # timer-only close and right-drag (see core/engine_overrides.py)
     utils.init_logging("autoedgeware_engine")
 
     media_roots = [MEDIA_ROOT / p.name for p in presets]   # the caller decides which presets run
@@ -433,7 +435,7 @@ def build_and_start(root, presets, on_log=None, embedded=False, on_stop=None):
 
     def begin():
         if settings.startup_splash:
-            _start_with_splash(root, settings, pack, media_roots, start_main)
+            _start_popup_loop(root, media_roots, start_main)
         else:
             start_main()
 
@@ -462,6 +464,8 @@ def main():
 
     root = Tk()
     root.withdraw()
+    from core.win_dpi import apply_tk
+    apply_tk(root)   # popup captions follow the same Windows scale as the settings window
     _pack, state, _settings = build_and_start(root, presets)
 
     try:

@@ -7,6 +7,7 @@ from tkinter import messagebox
 from ae_settings.wizard_logic import safe_name
 from core import preset_finder
 from core.source_registry import SOURCE_REGISTRY
+from core.win_dpi import scale_px, ui_scale
 from gui.widgets import ScrollFrame
 from gui.style import center_on_screen, FlatButton, FlatEntry, Toggle
 
@@ -26,10 +27,12 @@ class PresetFinderDialog(tk.Toplevel):
         center_on_screen(self, 620, 680)
         self.transient(parent)
         self.grab_set()
+        self._text_w = scale_px(580, ui_scale(self))
+        self._row_w = scale_px(540, ui_scale(self))
 
         def lab(parent_, text, color=None, size=9, bold=True):
             return tk.Label(parent_, text=text, bg=palette["bg"], fg=color or palette["white"], justify="left",
-                            font=("Segoe UI", size, "bold" if bold else "normal"), wraplength=580)
+                            font=("Segoe UI", size, "bold" if bold else "normal"), wraplength=self._text_w)
 
         def btn(parent_, text, cmd, primary=False):
             return FlatButton(parent_, text=text, command=cmd, relief="flat", bd=0, padx=12, pady=6,
@@ -43,7 +46,7 @@ class PresetFinderDialog(tk.Toplevel):
         bottom.pack(side="bottom", fill="x", padx=16, pady=(4, 14))
         self.count_var = tk.StringVar()
         tk.Label(bottom, textvariable=self.count_var, bg=palette["bg"], fg=palette["muted"],
-                 font=("Segoe UI", 9), wraplength=580, justify="left").pack(anchor="w", pady=(0, 6))
+                 font=("Segoe UI", 9), wraplength=self._text_w, justify="left").pack(anchor="w", pady=(0, 6))
         if mode == "new":
             self.start_var = tk.BooleanVar(value=True)
             Toggle(bottom, text="Start the popups as soon as I save", variable=self.start_var,
@@ -91,7 +94,7 @@ class PresetFinderDialog(tk.Toplevel):
 
         self.status_var = tk.StringVar(value="Results appear below. Tick the ones you want.")
         tk.Label(top, textvariable=self.status_var, bg=palette["bg"], fg=palette["muted"],
-                 font=("Segoe UI", 9), wraplength=580, justify="left").pack(anchor="w", pady=(4, 2))
+                 font=("Segoe UI", 9), wraplength=self._text_w, justify="left").pack(anchor="w", pady=(4, 2))
 
         self.results = ScrollFrame(self, palette["panel"])
         self.results.pack(fill="both", expand=True, padx=16, pady=(0, 6))
@@ -162,7 +165,7 @@ class PresetFinderDialog(tk.Toplevel):
                 Toggle(self.results.body, text=text, variable=var, anchor="w", justify="left",
                                bg=pal["panel"], fg=pal["white"], selectcolor=pal["field"],
                                activebackground=pal["panel"], activeforeground=pal["white"],
-                               font=("Segoe UI", 9), highlightthickness=0, wraplength=540
+                               font=("Segoe UI", 9), highlightthickness=0, wraplength=self._row_w
                                ).pack(anchor="w", padx=16)
         self._update_count()
 

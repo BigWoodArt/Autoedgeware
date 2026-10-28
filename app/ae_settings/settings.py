@@ -18,6 +18,8 @@ DEFAULTS = {
     "auto_stop_after_pass": True,  # pre-popup testing convenience: stop once every preset finishes one pass
     "popup_timeout_enabled": False,  # auto-close popups after a set time - real Edgeware setting, just exposed here
     "popup_timeout_seconds": 10,
+    "popup_close_by_timer_only": False,  # click does not close; only the auto-close timer (needs timeout on)
+    "popup_drag_right_button": False,    # right-drag moves a popup; does not close it
     "edgeware_cfg": {},   # last-applied intensity preset's key/value bundle
     "gelbooru_api_key": "",
     "gelbooru_user_id": "",

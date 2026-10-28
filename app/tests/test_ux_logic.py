@@ -16,7 +16,7 @@ from core.friendly import friendly
 from core.panic_users import PANIC_USERS
 from core.pool_stats import count_media, status_line
 from core.preset_pick import pick_preset
-from core.splash_pick import choose_splash, pick_splash
+from core.splash_pick import choose_splash, first_popup_media, pick_splash
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -87,6 +87,16 @@ class Splash(unittest.TestCase):
         choose_splash(Root(), ["x"], "default.png", lambda p, pooled: got.append((str(p), pooled)),
                       timeout_ms=2000, poll_ms=500, picker=lambda folders: None)
         self.assertEqual(got, [("default.png", False)])
+
+    def test_webp_counts_as_a_gallery_image(self):
+        with tempfile.TemporaryDirectory() as d:
+            touch(d, "set.webp")
+            self.assertEqual(pick_splash([d], check=lambda p: True).name, "set.webp")
+
+    def test_opening_popup_is_pool_media_not_the_stock_splash(self):
+        self.assertEqual(first_popup_media("gallery.jpg", True), "gallery.jpg")
+        self.assertIsNone(first_popup_media("default_loading_splash.png", False))
+        self.assertIsNone(first_popup_media(None, False))
 
 
 class Friendly(unittest.TestCase):

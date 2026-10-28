@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 from ae_settings.wizard_logic import build_sources, nature_sources, safe_name
+from core.win_dpi import scale_px, ui_scale
 from gui.style import center_on_screen, FlatButton, FlatEntry, Toggle
 
 # (source id, label, ticked at first)
@@ -28,11 +29,12 @@ class FirstRunDialog(tk.Toplevel):
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
+        wrap = scale_px(480, ui_scale(self))
 
         def lab(text, size=9, color=None, bold=True):
             return tk.Label(self, text=text, bg=palette["bg"], fg=color or palette["white"],
                             font=("Segoe UI", size, "bold" if bold else "normal"), justify="left",
-                            wraplength=480)
+                            wraplength=wrap)
 
         def entry(var):
             return FlatEntry(self, textvariable=var, bg=palette["field"], fg=palette["white"],

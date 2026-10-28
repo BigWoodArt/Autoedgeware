@@ -1,9 +1,9 @@
 """Launch the Autoedgeware config GUI: python gui_main.py"""
-# Edgeware expects to run DPI-unaware (its own launchers do this). Must happen
-# before any Tk window exists, or 4K/scaled screens misplace video popups.
+# Windows display scale (125%, 150%, ...) has to be chosen before any Tk window,
+# or Windows bitmap-stretches the UI and a 2K screen looks soft.
 try:
-    from ctypes import windll
-    windll.shcore.SetProcessDpiAwareness(0)
+    from core.win_dpi import enable
+    enable()
 except Exception:
     pass
 
