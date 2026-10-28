@@ -33,6 +33,7 @@ Contains unmodified Edgeware++ code (GPL-3.0, see `app/edgeware_core/COPYING`).
 
 ## Changelog
 
+- **0.25.1** — Setup now checks for Python 3.10+ and offers to install it (old Python caused "aiohttp" install errors).
 - **0.25** — Community patch (thanks PerStrateg): new sources Pictoa, EliteBabes, PornGIF, Pornhub Photos/GIFs; Windows DPI scaling fix; first popup uses your media (no stock splash); options: close popups by timer only, drag popups with right mouse button.
 - **0.24** — Monitors: choose which screens popups, fullscreen videos, the spiral and Hero use (Popups tab). Default is all.
 - **0.23.4** — Advanced > Network: optional "Skip certificate checks" (off by default; only on a trusted network).

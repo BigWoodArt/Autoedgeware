@@ -9,11 +9,20 @@ echo +==============[ Autoedgeware Setup~ ]==============+
 echo Python version:
 py --version
 echo:
-echo NOTE: Python versions older than 3.12 might have compatibility issues.
-echo:
 
-if not %errorlevel%==0 (
-  echo Could not find Python.
+set "NEEDPY=0"
+py --version >nul 2>&1
+if errorlevel 1 set "NEEDPY=1"
+if "%NEEDPY%"=="0" (
+  py -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+  if errorlevel 1 (
+    set "NEEDPY=2"
+    echo Your Python is too old. Autoedgeware needs Python 3.10 or newer.
+  )
+)
+
+if not "%NEEDPY%"=="0" (
+  if "%NEEDPY%"=="1" echo Could not find Python.
   echo Downloading installer from python.org, please wait...
 
   if %OS%==32BIT powershell -Command "Invoke-WebRequest https://www.python.org/ftp/python/3.12.6/python-3.12.6.exe -OutFile pyinstaller.exe"
@@ -24,9 +33,9 @@ if not %errorlevel%==0 (
   start "Python Installer" "%CD%\pyinstaller.exe"
   pause
 
-  py --version
-  if not %errorlevel%==0 (
-    echo Python still could not be found.
+  py -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+  if errorlevel 1 (
+    echo Python 3.10 or newer still could not be found. Install it, then close this window and run again.
     pause
     exit /b 1
   )
