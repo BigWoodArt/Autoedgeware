@@ -6,10 +6,11 @@ import unittest
 import urllib.request
 from unittest import mock
 
-from tests._net import reply
+from tests._net import err, reply
 from core import netlog
 from core.source_registry import SOURCE_REGISTRY
 from ae_sources.reddit_albums import album_from_json
+from sources.reddit_source import RateLimiter
 
 NS = "http://www.w3.org/2005/Atom"
 
@@ -29,7 +30,7 @@ def feed(link_kind="gallery"):
             f'<content type="html">{content}</content></entry></feed>')
 
 
-def run(handler, limit=5, skip=None, xml=None):
+def run(handler, limit=5, skip=None, xml=None, reset=True):
     log, got = [], []
     urls = []
 
@@ -38,7 +39,10 @@ def run(handler, limit=5, skip=None, xml=None):
         return handler(req.full_url)
     with mock.patch("time.sleep"), mock.patch.object(netlog, "_orig_urlopen", fake):
         urllib.request.urlopen = netlog._wrapped
-        src = SOURCE_REGISTRY["reddit"]()
+        cls = SOURCE_REGISTRY["reddit"]
+        if reset:
+            cls.reset_runtime()
+        src = cls()
         src.rate_limiter.min_interval = 0
         items = src.fetch("x", limit, "New", "month", tempfile.mkdtemp(), lambda m, l="info": log.append(m),
                           lambda *a: None, threading.Event(), item_cb=got.append, skip_ids=skip)
@@ -68,6 +72,82 @@ class Albums(unittest.TestCase):
             return reply(b"IMG" + u.encode())
         items, _, _ = run(h)
         self.assertEqual(len(items), 1)
+
+    def test_403_tries_old_reddit_once_then_stops_asking(self):
+        def entry(pid):
+            content = (f'&lt;a href="https://www.reddit.com/gallery/{pid}"&gt;[link]&lt;/a&gt;'
+                       f'&lt;img src="https://preview.redd.it/{pid}.jpg?w=1"&gt;')
+            return (f'<entry><title>{pid}</title><link href="https://www.reddit.com/r/x/comments/{pid}/t/"/>'
+                    f'<content type="html">{content}</content></entry>')
+        xml = f'<feed xmlns="{NS}">{entry("aaa111")}{entry("bbb222")}</feed>'
+
+        def h(u):
+            if ".rss" in u:
+                return reply(xml)
+            if ".json" in u:
+                raise err(u, 403)
+            return reply(b"IMG" + u.encode())
+        items, _, urls = run(h)
+        json_urls = [u for u in urls if ".json" in u]
+        self.assertEqual(len(items), 2)
+        self.assertEqual(len(json_urls), 2)                 # www, then old.reddit.com, and not the second album
+        self.assertTrue(any(u.startswith("https://old.reddit.com/") for u in json_urls))
+        self.assertFalse(any("bbb222" in u and ".json" in u for u in urls))
+        _, _, again = run(h, reset=False)
+        self.assertFalse(any(".json" in u for u in again))
+
+    def test_second_source_shares_the_clock(self):
+        RateLimiter.reset_shared()
+        clock = {"t": 1000.0}
+        slept = []
+
+        def now():
+            return clock["t"]
+
+        def sleep(seconds):
+            slept.append(seconds)
+            clock["t"] += seconds
+
+        first = RateLimiter(6.5, clock=now, sleep=sleep)
+        second = RateLimiter(6.5, clock=now, sleep=sleep)
+        first.wait()
+        second.wait()
+        self.assertAlmostEqual(slept[-1], 6.5, places=2)
+
+    def test_429_pause_blocks_the_next_source(self):
+        RateLimiter.reset_shared()
+        clock = {"t": 1000.0}
+        slept = []
+
+        def now():
+            return clock["t"]
+
+        def sleep(seconds):
+            slept.append(seconds)
+            clock["t"] += seconds
+
+        first = RateLimiter(6.5, clock=now, sleep=sleep)
+        second = RateLimiter(6.5, clock=now, sleep=sleep)
+        first.wait()
+        RateLimiter.penalize(60, clock=now)
+        second.wait()
+        self.assertGreaterEqual(sum(slept), 60)
+
+    def test_missing_feed_does_not_wait_like_a_rate_limit(self):
+        RateLimiter.reset_shared()
+        src = SOURCE_REGISTRY["reddit"]()
+        src.rate_limiter.min_interval = 0
+        log = []
+
+        def fake(req, timeout=15):
+            raise err(req.full_url, 404)
+        with mock.patch("time.sleep") as slept, mock.patch.object(netlog, "_orig_urlopen", fake):
+            urllib.request.urlopen = netlog._wrapped
+            text = src.http_get("https://www.reddit.com/r/MissingBoard/new/.rss?limit=100",
+                                lambda m, l="info": log.append(m))
+        self.assertIsNone(text)
+        self.assertTrue(any("no public feed" in m for m in log))
+        self.assertFalse(any(abs(c.args[0]) >= 60 for c in slept.call_args_list))
 
     def test_parse(self):
         pics = album_from_json(post_json(["a1", "b2"]))
