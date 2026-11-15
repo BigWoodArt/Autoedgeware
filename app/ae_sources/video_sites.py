@@ -5,7 +5,10 @@
   (needs ffmpeg), so a closed API doesn't leave the row empty."""
 from sources.hypnotube_source import HypnoTubeSource as _HypnoTube
 from sources.pmvhaven_source import PmvHavenSource as _PmvHaven
+from ae_sources import pmvhaven_dns
 from ae_sources.pmvhaven_pages import PmvhavenPageSource, clean_word
+
+pmvhaven_dns.install()
 
 
 class _SortGuard:
@@ -28,11 +31,16 @@ class PmvhavenSource(_SortGuard, _PmvHaven):
 
     def fetch(self, query, limit, sort, time_range, dest_dir, log, progress, stop_event, *a, **kw):
         self.stream_only = 0
-        results = super().fetch(query, limit, sort, time_range, dest_dir, log, progress, stop_event, *a, **kw)
-        word = clean_word(query)
-        if results or stop_event.is_set() or not word or ":" in word:
-            return results
-        why = (f"the API only offered stream playlists ({self.stream_only})" if self.stream_only
-               else "the API gave nothing")
-        log(f"[PMV Haven] {why}; reading the website pages instead", "info")
-        return PmvhavenPageSource().fetch(word, limit, "", time_range, dest_dir, log, progress, stop_event, *a, **kw)
+        try:
+            results = super().fetch(query, limit, sort, time_range, dest_dir, log, progress, stop_event, *a, **kw)
+            word = clean_word(query)
+            if results or stop_event.is_set() or not word or ":" in word:
+                return results
+            why = (f"the API only offered stream playlists ({self.stream_only})" if self.stream_only
+                   else "the API gave nothing")
+            log(f"[PMV Haven] {why}; reading the website pages instead", "info")
+            return PmvhavenPageSource().fetch(word, limit, "", time_range, dest_dir, log, progress, stop_event, *a, **kw)
+        finally:
+            note = pmvhaven_dns.take_notice()
+            if note:
+                log(f"[PMV Haven] {note}", "info")
