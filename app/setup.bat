@@ -14,10 +14,10 @@ set "NEEDPY=0"
 py --version >nul 2>&1
 if errorlevel 1 set "NEEDPY=1"
 if "%NEEDPY%"=="0" (
-  py -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+  py -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)" >nul 2>&1
   if errorlevel 1 (
     set "NEEDPY=2"
-    echo Your Python is too old. Autoedgeware needs Python 3.10 or newer.
+    echo Your Python is too old. Autoedgeware needs Python 3.12 or newer.
   )
 )
 
@@ -33,9 +33,9 @@ if not "%NEEDPY%"=="0" (
   start "Python Installer" "%CD%\pyinstaller.exe"
   pause
 
-  py -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+  py -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)" >nul 2>&1
   if errorlevel 1 (
-    echo Python 3.10 or newer still could not be found. Install it, then close this window and run again.
+    echo Python 3.12 or newer still could not be found. Install it, then close this window and run again.
     pause
     exit /b 1
   )
