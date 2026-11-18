@@ -9,12 +9,12 @@ API_KEYS = [
     ("freesound", "freesound_api_key", "Freesound API key",
      "Free: freesound.org > Apiv2 credentials. Needed for Freesound sounds."),
     ("rule34", "rule34_api_key", "Rule34 API key",
-     "Rule34 asks for a key and a user ID (both). Free: rule34.xxx > Account > Options > API Access Credentials."),
+     "Rule34 needs a key AND a numeric user ID. rule34.xxx > Account > Options > API Access Credentials: tick \"Generate New Key?\", Save, reopen Options. The box shows &api_key=KEY&user_id=NUMBER. Pasting that whole line works."),
 ]
 
 # Second half of a key + ID pair: passed to the source as user_id.
 API_IDS = [
-    ("rule34", "rule34_user_id", "Rule34 user ID", "The number shown next to your API key."),
+    ("rule34", "rule34_user_id", "Rule34 user ID (number)", "The account NUMBER shown as user_id= in Options (not your username)."),
 ]
 ALL_FIELDS = API_KEYS + API_IDS      # what the Advanced tab shows and saves
 

@@ -57,7 +57,7 @@ class ItemCallbackAndSkipIds(unittest.TestCase):
     def test_booru_api_sites(self):
         posts = [{"id": i, "tags": f"t{i}", "file_url": f"https://img.example/{i}.jpg"} for i in (1, 2, 3)]
         h = lambda u: reply(json.dumps({"post": posts})) if "dapi" in u else reply("IMG:" + u)
-        keys = {"api_key": "K", "user_id": "U"}
+        keys = {"api_key": "K", "user_id": "42"}
         for site, prefix, creds in (("safebooru", "sb_", None), ("tbib", "tb_", None), ("xbooru", "xb_", None),
                                     ("hypnohub", "hh_", None), ("gelbooru", "gb_", keys), ("rule34", "r34_", keys)):
             with self.subTest(site=site):
@@ -143,7 +143,7 @@ class BooruReplies(unittest.TestCase):
         h = lambda u: reply(json.dumps({"post": [{"id": 1, "file_url": "https://s.example/1.jpg"}]})) if "dapi" in u else self.website(u)
         for site, creds, expect_dapi in (("gelbooru", None, False), ("gelbooru", {"api_key": "K"}, False),
                                          ("gelbooru", {"api_key": "K", "user_id": "U"}, True),
-                                         ("rule34", None, False), ("rule34", {"api_key": "K", "user_id": "U"}, True),
+                                         ("rule34", None, False), ("rule34", {"api_key": "K", "user_id": "42"}, True),
                                          ("realbooru", None, False), ("realbooru", {"api_key": "K", "user_id": "U"}, False),
                                          ("safebooru", None, True)):
             with self.subTest(site=site, creds=bool(creds)):

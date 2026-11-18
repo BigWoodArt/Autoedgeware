@@ -24,6 +24,7 @@ That's it. Next time, just double-click `run.bat`.
 - **Intensity** goes from a slight annoyance up to maximum. Choose **Custom** on the Main tab (values live on the Popups tab) to set every value yourself.
 - **Popups tab:** custom intensity, sound volumes, auto-close, fullscreen videos. **Modes:** Hero settings, Hibernate, wallpaper changer. **Downloads:** file limits, smallest picture, video trimming, scrape timing. **Advanced:** startup options and optional site keys (Wallhaven, Gelbooru).
 - **Updates:** at startup the window checks GitHub. If there is a newer version an **Update** button shows at the top; one click installs it and restarts. Your presets, settings and downloads are kept. Turn the check off under Advanced.
+- **Rule34 needs a key and a user ID.** Log in at rule34.xxx > Account > Options. Under API Access Credentials tick *Generate New Key?* and Save (once). Reopen Options: it shows `&api_key=LONGKEY&user_id=1234567`. Enter LONGKEY and the number in Advanced > Site keys (pasting the whole line also works). The ID is the account number, not your username. Limit: 60 requests per minute.
 - Downloads and settings are kept in the `app` folder.
 - Needs Windows with Python 3.12 or newer. `run.bat` installs what is missing.
 
@@ -33,6 +34,7 @@ Contains unmodified Edgeware++ code (GPL-3.0, see `app/edgeware_core/COPYING`).
 
 ## Changelog
 
+- **0.25.3** — Rule34: accepts the pasted `&api_key=…&user_id=…` line, flags a username in the ID field, clearer errors.
 - **0.25.2** — Fix: Autoedgeware needs Python 3.12 or newer (older versions gave "invalid syntax (types.py)"). Setup now checks for 3.12.
 - **0.25.1** — Setup now checks for Python 3.10+ and offers to install it (old Python caused "aiohttp" install errors).
 - **0.25** — Community patch (thanks PerStrateg): new sources Pictoa, EliteBabes, PornGIF, Pornhub Photos/GIFs; Windows DPI scaling fix; first popup uses your media (no stock splash); options: close popups by timer only, drag popups with right mouse button.

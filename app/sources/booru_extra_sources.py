@@ -1,3 +1,4 @@
+import re
 import urllib.request
 
 from sources.booru_family import BooruFamilySource
@@ -14,10 +15,41 @@ class Rule34Source(BooruFamilySource):
     api_policy = "key"
     api_key_helps = True
 
+    @staticmethod
+    def clean_credentials(api_key, user_id):
+        """Accepts a pasted '&api_key=XXXX&user_id=NNNN' in either field.
+        Returns (key, numeric user id, problem text or '')."""
+        key, uid = (api_key or "").strip(), (user_id or "").strip()
+        m = re.search(r"api_key=([^&\s]*)", key) or (None if key else re.search(r"api_key=([^&\s]*)", uid))
+        if m:
+            key = m.group(1)
+        m = re.search(r"user_id=(\d+)", (api_key or "") + "&" + uid)
+        if m and not uid.isdigit():
+            uid = m.group(1)
+        problem = ""
+        if uid and not uid.isdigit():
+            problem = "User ID must be the account NUMBER (not the username)"
+            uid = ""
+        elif not key and not uid:
+            problem = ""
+        elif not key:
+            problem = "API key is empty"
+        elif not uid:
+            problem = "User ID is missing"
+        return key, uid, problem
+
     def __init__(self, api_key="", user_id="", cookie="", user_agent=""):
+        api_key, user_id, self.cred_problem = self.clean_credentials(api_key, user_id)
         super().__init__(api_key, user_id)
         self.cookie = cookie.strip()
         self.user_agent = user_agent.strip() or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0 Safari/537.36"
+
+    def _explain(self, ex, hint=True):
+        said = super()._explain(ex, hint)
+        if self.cred_problem or self.api_key or self.user_id:
+            said += (f"; {self.cred_problem}" if self.cred_problem else "") + \
+                    "; enter the API key and numeric User ID in Options"
+        return said
 
     def _browser_headers(self):
         h = {
